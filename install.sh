@@ -29,6 +29,18 @@ pushd ${oneinstack_dir} > /dev/null
 . ./include/download.sh
 . ./include/get_char.sh
 
+if [[ "${php_vn}" =~ ^5[3-6]$|^7[0-3]$ ]]; then
+    echo "php_vn=${php_vn} ,PHP install dir: ${php_install_dir}";
+    if [ -f "${php_install_dir}/bin/php" ]; then
+        echo "Current PHP Version: "`${php_install_dir}/bin/php -r 'echo PHP_VERSION;'`
+    else
+        echo "Current PHP Not Found.Exec Path: ${php_install_dir}/bin/php"
+    fi
+else
+    echo "${CWARNING}php_vn config error! Please check options.conf php_vn=[53~73]${CEND}";
+    exit 1;
+fi
+
 dbrootpwd=`< /dev/urandom tr -dc A-Za-z0-9 | head -c8`
 dbpostgrespwd=`< /dev/urandom tr -dc A-Za-z0-9 | head -c8`
 dbmongopwd=`< /dev/urandom tr -dc A-Za-z0-9 | head -c8`
@@ -494,8 +506,9 @@ if [ ${ARG_NUM} == 0 ]; then
           echo -e "\t${CMSG}6${CEND}. Install php-7.1"
           echo -e "\t${CMSG}7${CEND}. Install php-7.2"
           echo -e "\t${CMSG}8${CEND}. Install php-7.3"
-          read -e -p "Please input a number:(Default 5 press Enter) " php_option
-          php_option=${php_option:-5}
+          echo -e "Please chose php ${php_vn}"
+          read -e -p "Please input a number:(Default 7 press Enter) " php_option
+          php_option=${php_option:-7}
           if [[ ! ${php_option} =~ ^[1-8]$ ]]; then
             echo "${CWARNING}input error! Please only input number 1~8${CEND}"
           else
