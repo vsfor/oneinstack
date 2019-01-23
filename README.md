@@ -1,8 +1,10 @@
-Based on OneInStack
+**Based on OneInStack**
 
-update list:
-1、default install dirs (php/nginx/redis/python ...)
-2、default vhost document root path (for Yii2 framework) 
+##Change Log:
+
+####2019-01-22
+- `options.conf` change install dirs (php/nginx/redis/python ...)
+- `vhost.sh` change vhost document root path (for Yii2 framework) 
 
 ========== dividing line ==========
 
