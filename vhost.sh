@@ -390,12 +390,12 @@ What Are You Doing?
 
   while :; do echo
     echo "Please input the directory for the domain:${domain} :"
-    read -e -p "(Default directory: ${wwwroot_dir}/${domain}): " vhostdir
+    read -e -p "(Default directory: ${wwwroot_dir}/${domain}/web): " vhostdir
     if [ -n "${vhostdir}" -a -z "$(echo ${vhostdir} | grep '^/')" ]; then
       echo "${CWARNING}input error! Press Enter to continue...${CEND}"
     else
       if [ -z "${vhostdir}" ]; then
-        vhostdir="${wwwroot_dir}/${domain}"
+        vhostdir="${wwwroot_dir}/${domain}/web"
         echo "Virtual Host Directory=${CMSG}${vhostdir}${CEND}"
       fi
       echo
