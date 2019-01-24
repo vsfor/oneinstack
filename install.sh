@@ -30,7 +30,7 @@ pushd ${oneinstack_dir} > /dev/null
 . ./include/get_char.sh
 
 if [[ "${php_vn}" =~ ^5[3-6]$|^7[0-3]$ ]]; then
-    echo "php_vn=${php_vn} ,PHP install dir: ${php_install_dir}";
+    echo "php_vn=${php_vn}, install dir: ${php_install_dir}, sock path: /dev/shm/php${php_vn}-cgi.sock";
     if [ -f "${php_install_dir}/bin/php" ]; then
         echo "Current PHP Version: "`${php_install_dir}/bin/php -r 'echo PHP_VERSION;'`
     else
