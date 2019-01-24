@@ -277,19 +277,12 @@ Print_PHP() {
   [ -e "${php_install_dir}" ] && echo "${php_install_dir}"
   [ -e "/etc/init.d/php${php_vn}-fpm" ] && echo "/etc/init.d/php${php_vn}-fpm"
   [ -e "/lib/systemd/system/php${php_vn}-fpm.service" ] && echo '/lib/systemd/system/php${php_vn}-fpm.service'
-  [ -e "${imagick_install_dir}" ] && echo "${imagick_install_dir}"
-  [ -e "${gmagick_install_dir}" ] && echo "${gmagick_install_dir}"
-  [ -e "${curl_install_dir}" ] && echo "${curl_install_dir}"
 }
 
 Uninstall_PHP() {
   [ -e "/etc/init.d/php${php_vn}-fpm" ] && { service php${php_vn}-fpm stop > /dev/null 2>&1; rm -f /etc/init.d/php${php_vn}-fpm; }
   [ -e "/lib/systemd/system/php${php_vn}-fpm.service" ] && { systemctl stop php${php_vn}-fpm > /dev/null 2>&1; systemctl disable php${php_vn}-fpm > /dev/null 2>&1; rm -f /lib/systemd/system/php${php_vn}-fpm.service; }
-  [ -e "${apache_install_dir}/conf/httpd.conf" ] && [ -n "`grep libphp ${apache_install_dir}/conf/httpd.conf`" ] && sed -i '/libphp/d' ${apache_install_dir}/conf/httpd.conf
   [ -e "${php_install_dir}" ] && { rm -rf ${php_install_dir}; echo "${CMSG}PHP uninstall completed! ${CEND}"; }
-  [ -e "${imagick_install_dir}" ] && rm -rf ${imagick_install_dir}
-  [ -e "${gmagick_install_dir}" ] && rm -rf ${gmagick_install_dir}
-  [ -e "${curl_install_dir}" ] && rm -rf "${curl_install_dir}"
   sed -i "s@${php_install_dir}/bin:@@" /etc/profile
 }
 
