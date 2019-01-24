@@ -9,6 +9,10 @@
 #       https://github.com/oneinstack/oneinstack
 
 Upgrade_PHP() {
+    echo "${CWARNING} Please update options.conf change php_vn=[53~73],then redo install for new php version. ${CEND}";
+}
+
+Upgrade_PHP_BAK() {
   pushd ${oneinstack_dir}/src > /dev/null
   [ ! -e "${php_install_dir}" ] && echo "${CWARNING}PHP is not installed on your system! ${CEND}" && exit 1
   OLD_php_ver=`${php_install_dir}/bin/php -r 'echo PHP_VERSION;'`

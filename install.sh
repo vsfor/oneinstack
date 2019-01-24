@@ -496,23 +496,49 @@ if [ ${ARG_NUM} == 0 ]; then
     else
       if [ "${php_flag}" == 'y' ]; then
         [ -e "${php_install_dir}/bin/phpize" ] && { echo "${CWARNING}PHP already installed! ${CEND}"; unset php_option; break; }
+        if [ "${php_vn}" == '53' ]; then
+          php_option=1
+        elif [ "${php_vn}" == '54' ]; then
+          php_option=2
+        elif [ "${php_vn}" == '55' ]; then
+          php_option=3
+        elif [ "${php_vn}" == '56' ]; then
+          php_option=4
+        elif [ "${php_vn}" == '70' ]; then
+          php_option=5
+        elif [ "${php_vn}" == '71' ]; then
+          php_option=6
+        elif [ "${php_vn}" == '72' ]; then
+          php_option=7
+        elif [ "${php_vn}" == '73' ]; then
+          php_option=8
+        else
+          php_option=0
+        fi
         while :; do echo
-          echo 'Please select a version of the PHP:'
-          echo -e "\t${CMSG}1${CEND}. Install php-5.3"
-          echo -e "\t${CMSG}2${CEND}. Install php-5.4"
-          echo -e "\t${CMSG}3${CEND}. Install php-5.5"
-          echo -e "\t${CMSG}4${CEND}. Install php-5.6"
-          echo -e "\t${CMSG}5${CEND}. Install php-7.0"
-          echo -e "\t${CMSG}6${CEND}. Install php-7.1"
-          echo -e "\t${CMSG}7${CEND}. Install php-7.2"
-          echo -e "\t${CMSG}8${CEND}. Install php-7.3"
-          echo -e "Please chose php ${php_vn}"
-          read -e -p "Please input a number:(Default 7 press Enter) " php_option
-          php_option=${php_option:-7}
-          if [[ ! ${php_option} =~ ^[1-8]$ ]]; then
-            echo "${CWARNING}input error! Please only input number 1~8${CEND}"
+          echo 'Version list of the PHP:'
+          echo -e "\t${CMSG}1${CEND}. php_vn=53 Install php-5.3"
+          echo -e "\t${CMSG}2${CEND}. php_vn=54 Install php-5.4"
+          echo -e "\t${CMSG}3${CEND}. php_vn=55 Install php-5.5"
+          echo -e "\t${CMSG}4${CEND}. php_vn=56 Install php-5.6"
+          echo -e "\t${CMSG}5${CEND}. php_vn=70 Install php-7.0"
+          echo -e "\t${CMSG}6${CEND}. php_vn=71 Install php-7.1"
+          echo -e "\t${CMSG}7${CEND}. php_vn=72 Install php-7.2"
+          echo -e "\t${CMSG}8${CEND}. php_vn=73 Install php-7.3"
+          echo -e "php-${php_vn} were chosen to install (${php_option})."
+          read -e -p "Sure to install ${php_option} PHP-${php_vn}? [y/n]: " php_flag_confirm
+          if [[ ! ${php_flag_confirm} =~ ^[y,n]$ ]]; then
+              echo "${CWARNING}input error! Please only input 'y' or 'n'${CEND}"
           else
-            break
+              if [ "${php_flag_confirm}" == 'y' ]; then
+                if [[ ! ${php_option} =~ ^[1-8]$ ]]; then
+                  echo "${CWARNING}php_vn error! Please check options.conf${CEND}"
+                else
+                  break
+                fi
+              else
+                echo "You can reset php_vn options.conf for another php version${CEND}"
+              fi
           fi
         done
       fi

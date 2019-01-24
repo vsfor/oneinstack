@@ -5,6 +5,10 @@
 ####2019-01-22
 - `options.conf` change install dirs (php/nginx/redis/python ...)
 - `vhost.sh` change vhost document root path (for Yii2 framework) 
+- `install.sh` update for php_vn option check,add tip msg
+- `include/php-*.sh` change php-fpm service path by php_vn (for diff php version) 
+- `uninstall.sh` update for php uninstall logic
+- `include/upgrade_php.sh` reset php upgrade logic (you can install diff php ver)
 
 ========== dividing line ==========
 

@@ -22,10 +22,24 @@ printf "
 
 oneinstack_dir=$(dirname "`readlink -f $0`")
 pushd ${oneinstack_dir} > /dev/null
+. ./versions.txt
 . ./options.conf
 . ./include/color.sh
 . ./include/get_char.sh
 . ./include/check_dir.sh
+
+
+if [[ "${php_vn}" =~ ^5[3-6]$|^7[0-3]$ ]]; then
+    echo "php_vn=${php_vn} ,PHP install dir: ${php_install_dir}";
+    if [ -f "${php_install_dir}/bin/php" ]; then
+        echo "Current PHP Version: "`${php_install_dir}/bin/php -r 'echo PHP_VERSION;'`
+    else
+        echo "Current PHP Not Found.Exec Path: ${php_install_dir}/bin/php"
+    fi
+else
+    echo "${CWARNING}php_vn config error! Please check options.conf php_vn=[53~73]${CEND}";
+    exit 1;
+fi
 
 Show_Help() {
   echo
@@ -261,16 +275,16 @@ Uninstall_MongoDB() {
 
 Print_PHP() {
   [ -e "${php_install_dir}" ] && echo "${php_install_dir}"
-  [ -e "/etc/init.d/php-fpm" ] && echo "/etc/init.d/php-fpm"
-  [ -e "/lib/systemd/system/php-fpm.service" ] && echo '/lib/systemd/system/php-fpm.service'
+  [ -e "/etc/init.d/php${php_vn}-fpm" ] && echo "/etc/init.d/php${php_vn}-fpm"
+  [ -e "/lib/systemd/system/php${php_vn}-fpm.service" ] && echo '/lib/systemd/system/php${php_vn}-fpm.service'
   [ -e "${imagick_install_dir}" ] && echo "${imagick_install_dir}"
   [ -e "${gmagick_install_dir}" ] && echo "${gmagick_install_dir}"
   [ -e "${curl_install_dir}" ] && echo "${curl_install_dir}"
 }
 
 Uninstall_PHP() {
-  [ -e "/etc/init.d/php-fpm" ] && { service php-fpm stop > /dev/null 2>&1; rm -f /etc/init.d/php-fpm; }
-  [ -e "/lib/systemd/system/php-fpm.service" ] && { systemctl stop php-fpm > /dev/null 2>&1; systemctl disable php-fpm > /dev/null 2>&1; rm -f /lib/systemd/system/php-fpm.service; }
+  [ -e "/etc/init.d/php${php_vn}-fpm" ] && { service php${php_vn}-fpm stop > /dev/null 2>&1; rm -f /etc/init.d/php${php_vn}-fpm; }
+  [ -e "/lib/systemd/system/php${php_vn}-fpm.service" ] && { systemctl stop php${php_vn}-fpm > /dev/null 2>&1; systemctl disable php${php_vn}-fpm > /dev/null 2>&1; rm -f /lib/systemd/system/php${php_vn}-fpm.service; }
   [ -e "${apache_install_dir}/conf/httpd.conf" ] && [ -n "`grep libphp ${apache_install_dir}/conf/httpd.conf`" ] && sed -i '/libphp/d' ${apache_install_dir}/conf/httpd.conf
   [ -e "${php_install_dir}" ] && { rm -rf ${php_install_dir}; echo "${CMSG}PHP uninstall completed! ${CEND}"; }
   [ -e "${imagick_install_dir}" ] && rm -rf ${imagick_install_dir}
@@ -289,7 +303,7 @@ Uninstall_PHPcache() {
   Uninstall_APCU
   Uninstall_eAccelerator
   # reload php
-  [ -e "${php_install_dir}/sbin/php-fpm" ] && service php-fpm reload
+  [ -e "${php_install_dir}/sbin/php-fpm" ] && service php${php_vn}-fpm reload
   [ -e "${apache_install_dir}/bin/apachectl" ] && ${apache_install_dir}/bin/apachectl -k graceful
 }
 
@@ -387,7 +401,7 @@ Uninstall_PHPext() {
   fi
 
   # reload php
-  [ -e "${php_install_dir}/sbin/php-fpm" ] && service php-fpm reload
+  [ -e "${php_install_dir}/sbin/php-fpm" ] && service php${php_vn}-fpm reload
   [ -e "${apache_install_dir}/bin/apachectl" ] && ${apache_install_dir}/bin/apachectl -k graceful
 }
 
