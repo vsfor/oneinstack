@@ -533,9 +533,12 @@ if [ ${ARG_NUM} == 0 ]; then
               if [ "${php_flag_confirm}" == 'y' ]; then
                 if [[ ! ${php_option} =~ ^[1-8]$ ]]; then
                   echo "${CWARNING}php_vn error! Please check options.conf${CEND}"
+                else
+                  break
                 fi
               else
                 echo "You can reset php_vn options.conf for another php version${CEND}"
+                php_option=0
                 break
               fi
           fi
