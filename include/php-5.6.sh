@@ -163,14 +163,14 @@ EOF
   if [ ! -e "${apache_install_dir}/bin/apxs" -o "${Apache_main_ver}" == '24' ] && [ "${apache_mode_option}" != '2' ]; then
     # php-fpm Init Script
     if [ -e /bin/systemctl ]; then
-      /bin/cp ${oneinstack_dir}/init.d/php-fpm.service /lib/systemd/system/
-      sed -i "s@/usr/local/php@${php_install_dir}@g" /lib/systemd/system/php-fpm.service
-      systemctl enable php-fpm
+      /bin/cp ${oneinstack_dir}/init.d/php-fpm.service /lib/systemd/system/php${php_vn}-fpm.service
+      sed -i "s@/usr/local/php@${php_install_dir}@g" /lib/systemd/system/php${php_vn}-fpm.service
+      systemctl enable php${php_vn}-fpm
     else
-      /bin/cp sapi/fpm/init.d.php-fpm /etc/init.d/php-fpm
-      chmod +x /etc/init.d/php-fpm
-      [ "${PM}" == 'yum' ] && { chkconfig --add php-fpm; chkconfig php-fpm on; }
-      [ "${PM}" == 'apt-get' ] && update-rc.d php-fpm defaults
+      /bin/cp sapi/fpm/init.d.php-fpm /etc/init.d/php${php_vn}-fpm
+      chmod +x /etc/init.d/php${php_vn}-fpm
+      [ "${PM}" == 'yum' ] && { chkconfig --add php${php_vn}-fpm; chkconfig php${php_vn}-fpm on; }
+      [ "${PM}" == 'apt-get' ] && update-rc.d php${php_vn}-fpm defaults
     fi
 
     cat > ${php_install_dir}/etc/php-fpm.conf <<EOF
@@ -197,7 +197,7 @@ daemonize = yes
 ;;;;;;;;;;;;;;;;;;;;
 
 [${run_user}]
-listen = /dev/shm/php-cgi.sock
+listen = /dev/shm/php${php_vn}-cgi.sock
 listen.backlog = -1
 listen.allowed_clients = 127.0.0.1
 listen.owner = ${run_user}
@@ -216,7 +216,7 @@ pm.process_idle_timeout = 10s
 request_terminate_timeout = 120
 request_slowlog_timeout = 0
 
-pm.status_path = /php-fpm_status
+pm.status_path = /php${php_vn}-fpm_status
 slowlog = var/log/slow.log
 rlimit_files = 51200
 rlimit_core = 0
@@ -256,7 +256,7 @@ EOF
       sed -i "s@^pm.max_spare_servers.*@pm.max_spare_servers = 80@" ${php_install_dir}/etc/php-fpm.conf
     fi
 
-    service php-fpm start
+    service php${php_vn}-fpm start
 
   elif [ "${apache_option}" == '2' ] || [ "${Apache_main_ver}" == '22' ] || [ "${apache_mode_option}" == '2' ]; then
     service httpd restart
