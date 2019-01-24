@@ -23,8 +23,8 @@ printf "
 
 oneinstack_dir=$(dirname "`readlink -f $0`")
 pushd ${oneinstack_dir}/src > /dev/null
-. ../options.conf
 . ../versions.txt
+. ../options.conf
 . ../include/color.sh
 . ../include/check_os.sh
 . ../include/download.sh
