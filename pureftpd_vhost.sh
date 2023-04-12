@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,7 +12,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 clear
 printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #                 FTP virtual user account management                 #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
@@ -145,7 +145,7 @@ UserAdd() {
   USER
   [ -e "${Passwdfile}" ] && [ -n "`grep ^${User}: ${Passwdfile}`" ] && { echo "${CQUESTION}[${User}] is already existed! ${CEND}"; exit 1; }
   PASSWORD;DIRECTORY
-  ${FTP_bin} useradd ${User} -f ${Passwdfile} -u ${run_user} -g ${run_user} -d ${Directory} -m < ${FTP_tmp_passfile}
+  ${FTP_bin} useradd ${User} -f ${Passwdfile} -u ${run_user} -g ${run_group} -d ${Directory} -m < ${FTP_tmp_passfile}
   ${FTP_bin} mkdb ${Puredbfile} -f ${Passwdfile} > /dev/null 2>&1
   echo "#####################################"
   echo

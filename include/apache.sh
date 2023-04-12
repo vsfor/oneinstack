@@ -1,25 +1,45 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
 #       https://github.com/oneinstack/oneinstack
 
-Install_Apache24() {
+Install_Apache() {
   pushd ${oneinstack_dir}/src > /dev/null
   tar xzf pcre-${pcre_ver}.tar.gz
   pushd pcre-${pcre_ver} > /dev/null
   ./configure
   make -j ${THREAD} && make install
   popd > /dev/null
+  id -g ${run_group} >/dev/null 2>&1
+  [ $? -ne 0 ] && groupadd ${run_group}
   id -u ${run_user} >/dev/null 2>&1
-  [ $? -ne 0 ] && useradd -M -s /sbin/nologin ${run_user}
-  tar xzf httpd-${apache24_ver}.tar.gz
-  tar xzf apr-${apr_ver}.tar.gz
-  tar xzf apr-util-${apr_util_ver}.tar.gz
+  [ $? -ne 0 ] && useradd -g ${run_group} -M -s /sbin/nologin ${run_user}
+  tar xzf httpd-${apache_ver}.tar.gz
+
+  # install apr
+  if [ ! -e "${apr_install_dir}/bin/apr-1-config" ]; then
+    tar xzf apr-${apr_ver}.tar.gz
+    pushd apr-${apr_ver} > /dev/null
+    ./configure --prefix=${apr_install_dir}
+    make -j ${THREAD} && make install
+    popd > /dev/null
+    rm -rf apr-${apr_ver}
+  fi
+
+  # install apr-util
+  if [ ! -e "${apr_install_dir}/bin/apu-1-config" ]; then
+    tar xzf apr-util-${apr_util_ver}.tar.gz
+    pushd apr-util-${apr_util_ver} > /dev/null
+    ./configure --prefix=${apr_install_dir} --with-apr=${apr_install_dir}
+    make -j ${THREAD} && make install
+    popd > /dev/null
+    rm -rf apr-util-${apr_util_ver}
+  fi
 
   # install nghttp2
   if [ ! -e "/usr/local/lib/libnghttp2.so" ]; then
@@ -33,42 +53,30 @@ Install_Apache24() {
     rm -rf nghttp2-${nghttp2_ver}
   fi
 
-  pushd httpd-${apache24_ver} > /dev/null
-  [ ! -d "${apache_install_dir}" ] && mkdir -p ${apache_install_dir}
-  /bin/cp -R ../apr-${apr_ver} ./srclib/apr
-  /bin/cp -R ../apr-util-${apr_util_ver} ./srclib/apr-util
-  LDFLAGS=-ldl ./configure --prefix=${apache_install_dir} --enable-mpms-shared=all --with-pcre --with-included-apr --enable-headers --enable-mime-magic --enable-deflate --enable-proxy --enable-so --enable-dav --enable-rewrite --enable-remoteip --enable-expires --enable-static-support --enable-suexec --enable-mods-shared=most --enable-nonportable-atomics=yes --enable-ssl --with-ssl=${openssl_install_dir} --enable-http2 --with-nghttp2=/usr/local
+  pushd httpd-${apache_ver} > /dev/null
+  LDFLAGS=-ldl ./configure --prefix=${apache_install_dir} --enable-mpms-shared=all --with-pcre --with-apr=${apr_install_dir} --with-apr-util=${apr_install_dir} --enable-headers --enable-mime-magic --enable-deflate --enable-proxy --enable-so --enable-dav --enable-rewrite --enable-remoteip --enable-expires --enable-static-support --enable-suexec --enable-mods-shared=most --enable-nonportable-atomics=yes --enable-ssl --with-ssl --enable-http2 --with-nghttp2=/usr/local
   make -j ${THREAD} && make install
   popd > /dev/null
   unset LDFLAGS
   if [ -e "${apache_install_dir}/bin/httpd" ]; then
     echo "${CSUCCESS}Apache installed successfully! ${CEND}"
-    rm -rf httpd-${apache24_ver} pcre-${pcre_ver} apr-${apr_ver} apr-util-${apr_util_ver}
+    rm -rf httpd-${apache_ver} pcre-${pcre_ver}
   else
     rm -rf ${apache_install_dir}
-    echo "${CFAILURE}Apache install failed, Please contact the author! ${CEND}"
-    kill -9 $$
+    echo "${CFAILURE}Apache install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
+    kill -9 $$; exit 1;
   fi
 
   [ -z "`grep ^'export PATH=' /etc/profile`" ] && echo "export PATH=${apache_install_dir}/bin:\$PATH" >> /etc/profile
   [ -n "`grep ^'export PATH=' /etc/profile`" -a -z "`grep ${apache_install_dir} /etc/profile`" ] && sed -i "s@^export PATH=\(.*\)@export PATH=${apache_install_dir}/bin:\1@" /etc/profile
   . /etc/profile
 
-  if [ -e /bin/systemctl ]; then
-    /bin/cp ../init.d/httpd.service /lib/systemd/system/
-    sed -i "s@/usr/local/apache@${apache_install_dir}@g" /lib/systemd/system/httpd.service
-    systemctl enable httpd
-  else
-    /bin/cp ${apache_install_dir}/bin/apachectl /etc/init.d/httpd
-    sed -i '2a # chkconfig: - 85 15' /etc/init.d/httpd
-    sed -i '3a # description: Apache is a World Wide Web server. It is used to serve' /etc/init.d/httpd
-    chmod +x /etc/init.d/httpd
-    [ "${PM}" == 'yum' ] && { chkconfig --add httpd; chkconfig httpd on; }
-    [ "${PM}" == 'apt-get' ] && update-rc.d httpd defaults
-  fi
+  /bin/cp ../init.d/httpd.service /lib/systemd/system/
+  sed -i "s@/usr/local/apache@${apache_install_dir}@g" /lib/systemd/system/httpd.service
+  systemctl enable httpd
 
   sed -i "s@^User daemon@User ${run_user}@" ${apache_install_dir}/conf/httpd.conf
-  sed -i "s@^Group daemon@Group ${run_user}@" ${apache_install_dir}/conf/httpd.conf
+  sed -i "s@^Group daemon@Group ${run_group}@" ${apache_install_dir}/conf/httpd.conf
   if [[ ! ${nginx_option} =~ ^[1-3]$ ]] && [ ! -e "${web_install_dir}/sbin/nginx" ]; then
     sed -i 's/^#ServerName www.example.com:80/ServerName 0.0.0.0:80/' ${apache_install_dir}/conf/httpd.conf
     TMP_PORT=80
@@ -92,10 +100,10 @@ Install_Apache24() {
   sed -i "s@^DocumentRoot.*@DocumentRoot \"${wwwroot_dir}/default\"@" ${apache_install_dir}/conf/httpd.conf
   sed -i "s@^<Directory \"${apache_install_dir}/htdocs\">@<Directory \"${wwwroot_dir}/default\">@" ${apache_install_dir}/conf/httpd.conf
   sed -i "s@^#Include conf/extra/httpd-mpm.conf@Include conf/extra/httpd-mpm.conf@" ${apache_install_dir}/conf/httpd.conf
-  if [ "${apache_mpm_option}" == '2' ]; then 
+  if [ "${apache_mpm_option}" == '2' ]; then
     sed -ri 's@^(LoadModule.*mod_mpm_event.so)@#\1@' ${apache_install_dir}/conf/httpd.conf
     sed -i 's@^#LoadModule mpm_prefork_module@LoadModule mpm_prefork_module@' ${apache_install_dir}/conf/httpd.conf
-  elif [ "${apache_mpm_option}" == '3' ]; then 
+  elif [ "${apache_mpm_option}" == '3' ]; then
     sed -ri 's@^(LoadModule.*mod_mpm_event.so)@#\1@' ${apache_install_dir}/conf/httpd.conf
     sed -i 's@^#LoadModule mpm_worker_module@LoadModule mpm_worker_module@' ${apache_install_dir}/conf/httpd.conf
   fi
@@ -176,6 +184,7 @@ EOF
     sed -i "s@LogFormat \"%h %l@LogFormat \"%h %a %l@g" ${apache_install_dir}/conf/httpd.conf
   fi
   ldconfig
-  service httpd start
+  [ "${with_old_openssl_flag}" == 'y' ] && sed -i "s@^export LD_LIBRARY_PATH.*@export LD_LIBRARY_PATH=${openssl_install_dir}/lib:\$LD_LIBRARY_PATH@" ${apache_install_dir}/bin/envvars
+  systemctl start httpd
   popd > /dev/null
 }

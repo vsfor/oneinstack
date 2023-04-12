@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,7 +12,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 clear
 printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
@@ -46,6 +46,8 @@ Show_Help() {
   --help, -h                  Show this help message
   --quiet, -q                 quiet operation
   --list, -l                  List Virtualhost
+  --mphp_ver [53~81]          Use another PHP version (PATH: /usr/local/php${mphp_ver})
+  --proxy                     Use proxy
   --add                       Add Virtualhost
   --delete, --del             Delete Virtualhost
   --httponly                  Use HTTP Only
@@ -56,7 +58,7 @@ Show_Help() {
 }
 
 ARG_NUM=$#
-TEMP=`getopt -o hql --long help,quiet,list,add,delete,del,httponly,selfsigned,letsencrypt,dnsapi -- "$@" 2>/dev/null`
+TEMP=`getopt -o hql --long help,quiet,list,proxy,mphp_ver:,add,delete,del,httponly,selfsigned,letsencrypt,dnsapi -- "$@" 2>/dev/null`
 [ $? != 0 ] && echo "${CWARNING}ERROR: unknown argument! ${CEND}" && Show_Help && exit 1
 eval set -- "${TEMP}"
 while :; do
@@ -70,6 +72,13 @@ while :; do
       ;;
     -l|--list)
       list_flag=y; shift 1
+      ;;
+    --mphp_ver)
+      mphp_ver=$2; mphp_flag=y; shift 2
+      [[ ! "${mphp_ver}" =~ ^5[3-6]$|^7[0-4]$|^8[0-1]$ ]] && { echo "${CWARNING}mphp_ver input error! Please only input number 53~81${CEND}"; unset mphp_ver mphp_flag; }
+      ;;
+    --proxy)
+      proxy_flag=y; shift 1
       ;;
     --add)
       add_flag=y; shift 1
@@ -115,17 +124,16 @@ Choose_ENV() {
     [ "$(${apache_install_dir}/bin/apachectl -v | awk -F'.' /version/'{print $2}')" == '4' ] && { Apache_main_ver=24; Apache_grant='Require all granted'; }
     [ "$(${apache_install_dir}/bin/apachectl -v | awk -F'.' /version/'{print $2}')" == '2' ] && Apache_main_ver=22
   fi
-  if [ -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" -a -e "/usr/bin/hhvm" ]; then
-    Number=111
+  if [ -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" ] && [[ -z ${proxy_flag} || "${proxy_flag}" != 'y' ]]; then
+    Number=11
     while :; do echo
       echo "Please choose to use environment:"
       echo -e "\t${CMSG}1${CEND}. Use php"
       echo -e "\t${CMSG}2${CEND}. Use java"
-      echo -e "\t${CMSG}3${CEND}. Use hhvm"
       read -e -p "Please input a number:(Default 1 press Enter) " ENV_FLAG
       ENV_FLAG=${ENV_FLAG:-1}
-      if [[ ! ${ENV_FLAG} =~ ^[1-3]$ ]]; then
-        echo "${CWARNING}input error! Please only input number 1~3${CEND}"
+      if [[ ! ${ENV_FLAG} =~ ^[1-2]$ ]]; then
+        echo "${CWARNING}input error! Please only input number 1~2${CEND}"
       else
         break
       fi
@@ -137,83 +145,17 @@ Choose_ENV() {
       2)
         NGX_FLAG=java
         ;;
-      3)
-        NGX_FLAG=hhvm
-        ;;
     esac
-  elif [ -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" -a ! -e "/usr/bin/hhvm" ]; then
-    Number=110
-    while :; do echo
-      echo "Please choose to use environment:"
-      echo -e "\t${CMSG}1${CEND}. Use php"
-      echo -e "\t${CMSG}2${CEND}. Use java"
-      read -e -p "Please input a number:(Default 1 press Enter) " ENV_FLAG
-      ENV_FLAG=${ENV_FLAG:-1}
-      if [[ ! ${ENV_FLAG} =~ ^[1-2]$ ]]; then
-        echo "${CWARNING}input error! Please only input number 1~2${CEND}"
-      else
-        break
-      fi
-    done
-    [ "${ENV_FLAG}" == '1' ] && NGX_FLAG=php
-    [ "${ENV_FLAG}" == '2' ] && NGX_FLAG=java
-  elif [ -e "${php_install_dir}/bin/phpize" -a ! -e "${tomcat_install_dir}/conf/server.xml" -a ! -e "/usr/bin/hhvm" ]; then
-    Number=100
+  elif [ -e "${php_install_dir}/bin/phpize" -a ! -e "${tomcat_install_dir}/conf/server.xml" ]; then
+    Number=10
     NGX_FLAG=php
-  elif [ -e "${php_install_dir}/bin/phpize" -a ! -e "${tomcat_install_dir}/conf/server.xml" -a -e "/usr/bin/hhvm" ]; then
-    Number=101
-    while :; do echo
-      echo "Please choose to use environment:"
-      echo -e "\t${CMSG}1${CEND}. Use php"
-      echo -e "\t${CMSG}2${CEND}. Use hhvm"
-      read -e -p "Please input a number:(Default 1 press Enter) " ENV_FLAG
-      ENV_FLAG=${ENV_FLAG:-1}
-      if [[ ! ${ENV_FLAG} =~ ^[1-2]$ ]]; then
-        echo "${CWARNING}input error! Please only input number 1~2${CEND}"
-      else
-        break
-      fi
-    done
-    [ "${ENV_FLAG}" == '1' ] && NGX_FLAG=php
-    [ "${ENV_FLAG}" == '2' ] && NGX_FLAG=hhvm
-  elif [ ! -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" -a -e "/usr/bin/hhvm" ]; then
-    Number=011
-    while :; do echo
-      echo "Please choose to use environment:"
-      echo -e "\t${CMSG}1${CEND}. Use java"
-      echo -e "\t${CMSG}2${CEND}. Use hhvm"
-      read -e -p "Please input a number:(Default 1 press Enter) " ENV_FLAG
-      ENV_FLAG=${ENV_FLAG:-1}
-      if [[ ! ${ENV_FLAG} =~ ^[1-2]$ ]]; then
-        echo "${CWARNING}input error! Please only input number 1~2${CEND}"
-      else
-        break
-      fi
-    done
-    [ "${ENV_FLAG}" == '1' ] && NGX_FLAG=java
-    [ "${ENV_FLAG}" == '2' ] && NGX_FLAG=hhvm
-  elif [ ! -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" -a ! -e "/usr/bin/hhvm" ]; then
-    Number=010
+  elif [ ! -e "${php_install_dir}/bin/phpize" -a -e "${tomcat_install_dir}/conf/server.xml" ]; then
+    Number=01
     NGX_FLAG=java
-  elif [ ! -e "${php_install_dir}/bin/phpize" -a ! -e "${tomcat_install_dir}/conf/server.xml" -a -e "/usr/bin/hhvm" ]; then
-    Number=001
-    NGX_FLAG=hhvm
   else
-    Number=000
+    Number=00
     NGX_FLAG=php
   fi
-
-  case "${NGX_FLAG}" in
-    "php")
-      NGX_CONF=$(echo -e "location ~ [^/]\.php(/|$) {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${php_vn}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n  }")
-      ;;
-    "java")
-      NGX_CONF=$(echo -e "location ~ {\n    proxy_pass http://127.0.0.1:8080;\n    include proxy.conf;\n  }")
-      ;;
-    "hhvm")
-      NGX_CONF=$(echo -e "location ~ .*\.(php|php5)?$ {\n    fastcgi_pass unix:/var/log/hhvm/sock;\n    fastcgi_index index.php;\n    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n    include fastcgi_params;\n  }")
-      ;;
-  esac
 }
 
 Create_SSL() {
@@ -229,6 +171,7 @@ If you enter '.', the field will be left blank.
     echo
     read -e -p "Country Name (2 letter code) [CN]: " SELFSIGNEDSSL_C
     SELFSIGNEDSSL_C=${SELFSIGNEDSSL_C:-CN}
+    # shellcheck disable=SC2104
     [ ${#SELFSIGNEDSSL_C} != 2 ] && { echo "${CWARNING}input error, You must input 2 letter code country name${CEND}"; continue; }
     echo
     read -e -p "State or Province Name (full name) [Shanghai]: " SELFSIGNEDSSL_ST
@@ -243,9 +186,36 @@ If you enter '.', the field will be left blank.
     read -e -p "Organizational Unit Name (eg, section) [IT Dept.]: " SELFSIGNEDSSL_OU
     SELFSIGNEDSSL_OU=${SELFSIGNEDSSL_OU:-"IT Dept."}
 
-    openssl req -new -newkey rsa:2048 -sha256 -nodes -out ${PATH_SSL}/${domain}.csr -keyout ${PATH_SSL}/${domain}.key -subj "/C=${SELFSIGNEDSSL_C}/ST=${SELFSIGNEDSSL_ST}/L=${SELFSIGNEDSSL_L}/O=${SELFSIGNEDSSL_O}/OU=${SELFSIGNEDSSL_OU}/CN=${domain}" > /dev/null 2>&1
+    openssl req -utf8 -new -newkey rsa:2048 -sha256 -nodes -out ${PATH_SSL}/${domain}.csr -keyout ${PATH_SSL}/${domain}.key -subj "/C=${SELFSIGNEDSSL_C}/ST=${SELFSIGNEDSSL_ST}/L=${SELFSIGNEDSSL_L}/O=${SELFSIGNEDSSL_O}/OU=${SELFSIGNEDSSL_OU}/CN=${domain}" > /dev/null 2>&1
     openssl x509 -req -days 36500 -sha256 -in ${PATH_SSL}/${domain}.csr -signkey ${PATH_SSL}/${domain}.key -out ${PATH_SSL}/${domain}.crt > /dev/null 2>&1
   elif [ "${Domian_Mode}" == '3' -o "${dnsapi_flag}" == 'y' ]; then
+      while :; do echo
+        echo 'Please select domain cert key length.'
+        echo "${CMSG}Enter one of 2048, 3072, 4096, 8192 will issue a RSA cert.${CEND}"
+        echo "${CMSG}Enter one of ec-256, ec-384, ec-521 will issue a ECC cert.${CEND}"
+        echo
+        read -e -p "Please enter your cert key length (default 2048): " CERT_KEYLENGTH
+        if [ "${CERT_KEYLENGTH}" == "" ]; then
+          CERT_KEYLENGTH="2048"
+          break
+        elif [[ "${CERT_KEYLENGTH}" =~ ^2048$|^3072$|^4096$|^8192$|^ec-256$|^ec-384$|^ec-521$ ]]; then
+          break
+        else
+          echo "${CWARNING}input error!${CEND}"
+        fi
+      done
+    if [ ! -e ~/.acme.sh/ca/acme.zerossl.com/v2/DV90/account.key ]; then
+      while :; do echo
+        read -e -p "Please enter your email: " EMAIL
+        echo
+        if [[ "${EMAIL}" =~ ^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,9}$ ]]; then
+          break
+        else
+          echo "${CWARNING}input error!${CEND}"
+        fi
+      done
+      ~/.acme.sh/acme.sh --register-account -m ${EMAIL}
+    fi
     if [ "${moredomain}" == "*.${domain}" -o "${dnsapi_flag}" == 'y' ]; then
       while :; do echo
         echo 'Please select DNS provider:'
@@ -270,11 +240,15 @@ If you enter '.', the field will be left blank.
         fi
       done
       [ "${moredomainame_flag}" == 'y' ] && moredomainame_D="$(for D in ${moredomainame}; do echo -d ${D}; done)"
-      ~/.acme.sh/acme.sh --issue --dns dns_${DNS_PRO} -d ${domain} ${moredomainame_D}
+      ~/.acme.sh/acme.sh --force --issue -k ${CERT_KEYLENGTH} --dns dns_${DNS_PRO} -d ${domain} ${moredomainame_D}
     else
       if [ "${nginx_ssl_flag}" == 'y' ]; then
         [ ! -d ${web_install_dir}/conf/vhost ] && mkdir ${web_install_dir}/conf/vhost
-        echo "server {  server_name ${domain}${moredomainame};  root ${vhostdir};  access_log off; }" > ${web_install_dir}/conf/vhost/${domain}.conf
+        if [ -n "`ifconfig | grep inet6`" ]; then
+          echo "server {  listen 80;  listen [::]:80;  server_name ${domain}${moredomainame};  root ${vhostdir};  access_log off; }" > ${web_install_dir}/conf/vhost/${domain}.conf
+        else
+          echo "server {  listen 80;  server_name ${domain}${moredomainame};  root ${vhostdir};  access_log off; }" > ${web_install_dir}/conf/vhost/${domain}.conf
+        fi
         ${web_install_dir}/sbin/nginx -s reload
       fi
       if [ "${apache_ssl_flag}" == 'y' ]; then
@@ -307,11 +281,10 @@ EOF
       done
       rm -f ${vhostdir}/${auth_file}
       [ "${moredomainame_flag}" == 'y' ] && moredomainame_D="$(for D in ${moredomainame}; do echo -d ${D}; done)"
-      ~/.acme.sh/acme.sh --issue -d ${domain} ${moredomainame_D} -w ${vhostdir}
+      ~/.acme.sh/acme.sh --force --issue -k ${CERT_KEYLENGTH} -w ${vhostdir} -d ${domain} ${moredomainame_D}
     fi
-    if [ -s ~/.acme.sh/${domain}/fullchain.cer ]; then
       [ -e "${PATH_SSL}/${domain}.crt" ] && rm -f ${PATH_SSL}/${domain}.{crt,key}
-      [ -e /bin/systemctl -a -e /lib/systemd/system/nginx.service ] && Nginx_cmd='/bin/systemctl restart nginx' || Nginx_cmd='/etc/init.d/nginx force-reload'
+      Nginx_cmd="/bin/systemctl restart nginx"
       Apache_cmd="${apache_install_dir}/bin/apachectl -k graceful"
       if [ -e "${web_install_dir}/sbin/nginx" -a -e "${apache_install_dir}/bin/httpd" ]; then
         Command="${Nginx_cmd};${Apache_cmd}"
@@ -320,7 +293,10 @@ EOF
       elif [ ! -e "${web_install_dir}/sbin/nginx" -a -e "${apache_install_dir}/bin/httpd" ]; then
         Command="${Apache_cmd}"
       fi
-      ~/.acme.sh/acme.sh --install-cert -d ${domain} --fullchain-file ${PATH_SSL}/${domain}.crt --key-file ${PATH_SSL}/${domain}.key --reloadcmd "${Command}" > /dev/null
+    if [ -s ~/.acme.sh/${domain}/fullchain.cer ] && [[ "${CERT_KEYLENGTH}" =~ ^2048$|^3072$|^4096$|^8192$ ]]; then
+      ~/.acme.sh/acme.sh --force --install-cert -d ${domain} --fullchain-file ${PATH_SSL}/${domain}.crt --key-file ${PATH_SSL}/${domain}.key --reloadcmd "${Command}" > /dev/null
+    elif [ -s ~/.acme.sh/${domain}_ecc/fullchain.cer ] && [[ "${CERT_KEYLENGTH}" =~ ^ec-256$|^ec-384$|^ec-521$ ]]; then
+      ~/.acme.sh/acme.sh --force --install-cert --ecc -d ${domain} --fullchain-file ${PATH_SSL}/${domain}.crt --key-file ${PATH_SSL}/${domain}.key --reloadcmd "${Command}" > /dev/null
     else
       echo "${CFAILURE}Error: Create Let's Encrypt SSL Certificate failed! ${CEND}"
       [ -e "${web_install_dir}/conf/vhost/${domain}.conf" ] && rm -f ${web_install_dir}/conf/vhost/${domain}.conf
@@ -341,6 +317,18 @@ Print_SSL() {
   fi
 }
 
+Input_Add_proxy() {
+  while :; do echo
+    read -e -p "Please input the correct proxy_pass: " Proxy_Pass
+    if [ -z "$(echo $Proxy_Pass | grep -E '^http://|https://')" ]; then
+      echo "${CFAILURE}input error! Please only input example http://192.168.1.1:8080${CEND}"
+    else
+      echo "proxy_pass=${Proxy_Pass}"
+      break
+    fi
+  done
+}
+
 Input_Add_domain() {
   if [ "${sslquiet_flag}" != 'y' ]; then
     while :;do
@@ -359,6 +347,60 @@ What Are You Doing?
       fi
     done
   fi
+
+  #Multiple_PHP
+  if [ $(ls /dev/shm/php*-cgi.sock 2> /dev/null | wc -l) -ge 2 ]; then
+    if [ "${mphp_flag}" != 'y' ]; then
+      PHP_detail_ver=`${php_install_dir}/bin/php-config --version`
+      PHP_main_ver=${PHP_detail_ver%.*}
+      while :; do echo
+        echo 'Please select a version of the PHP:'
+        echo -e "\t${CMSG} 0${CEND}. PHP ${PHP_main_ver} (default)"
+        [ -e "/dev/shm/php53-cgi.sock" ] && echo -e "\t${CMSG} 1${CEND}. PHP 5.3"
+        [ -e "/dev/shm/php54-cgi.sock" ] && echo -e "\t${CMSG} 2${CEND}. PHP 5.4"
+        [ -e "/dev/shm/php55-cgi.sock" ] && echo -e "\t${CMSG} 3${CEND}. PHP 5.5"
+        [ -e "/dev/shm/php56-cgi.sock" ] && echo -e "\t${CMSG} 4${CEND}. PHP 5.6"
+        [ -e "/dev/shm/php70-cgi.sock" ] && echo -e "\t${CMSG} 5${CEND}. PHP 7.0"
+        [ -e "/dev/shm/php71-cgi.sock" ] && echo -e "\t${CMSG} 6${CEND}. PHP 7.1"
+        [ -e "/dev/shm/php72-cgi.sock" ] && echo -e "\t${CMSG} 7${CEND}. PHP 7.2"
+        [ -e "/dev/shm/php73-cgi.sock" ] && echo -e "\t${CMSG} 8${CEND}. PHP 7.3"
+        [ -e "/dev/shm/php74-cgi.sock" ] && echo -e "\t${CMSG} 9${CEND}. PHP 7.4"
+        [ -e "/dev/shm/php80-cgi.sock" ] && echo -e "\t${CMSG}10${CEND}. PHP 8.0"
+        [ -e "/dev/shm/php81-cgi.sock" ] && echo -e "\t${CMSG}11${CEND}. PHP 8.1"
+        [ -e "/dev/shm/php82-cgi.sock" ] && echo -e "\t${CMSG}12${CEND}. PHP 8.2"
+        read -e -p "Please input a number:(Default 0 press Enter) " php_option
+        php_option=${php_option:-0}
+        if [[ ! ${php_option} =~ ^[0-9]$|^1[0-2]$ ]]; then
+          echo "${CWARNING}input error! Please only input number 1~12${CEND}"
+        else
+          break
+        fi
+      done
+    fi
+    [ "${php_option}" == '1' ] && mphp_ver=53
+    [ "${php_option}" == '2' ] && mphp_ver=54
+    [ "${php_option}" == '3' ] && mphp_ver=55
+    [ "${php_option}" == '4' ] && mphp_ver=56
+    [ "${php_option}" == '5' ] && mphp_ver=70
+    [ "${php_option}" == '6' ] && mphp_ver=71
+    [ "${php_option}" == '7' ] && mphp_ver=72
+    [ "${php_option}" == '8' ] && mphp_ver=73
+    [ "${php_option}" == '9' ] && mphp_ver=74
+    [ "${php_option}" == '10' ] && mphp_ver=80
+    [ "${php_option}" == '11' ] && mphp_ver=81
+    [ "${php_option}" == '12' ] && mphp_ver=82
+    [ ! -e "/dev/shm/php${mphp_ver}-cgi.sock" ] && unset mphp_ver
+  fi
+
+  case "${NGX_FLAG}" in
+    "php")
+      NGX_CONF=$(echo -e "location ~ [^/]\.php(/|$) {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${mphp_ver}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n  }")
+      ;;
+    "java")
+      NGX_CONF=$(echo -e "location ~ {\n    proxy_pass http://127.0.0.1:8080;\n    include proxy.conf;\n  }")
+      ;;
+  esac
+
   if [ "${Domian_Mode}" == '3' -o "${dnsapi_flag}" == 'y' ] && [ ! -e ~/.acme.sh/acme.sh ]; then
     pushd ${oneinstack_dir}/src > /dev/null
     [ ! -e acme.sh-master.tar.gz ] && wget -qc http://mirrors.linuxeye.com/oneinstack/src/acme.sh-master.tar.gz
@@ -400,25 +442,26 @@ What Are You Doing?
   else
     echo "domain=${domain}"
   fi
-
-  while :; do echo
-    echo "Please input the directory for the domain:${domain} :"
-    read -e -p "(Default directory: ${wwwroot_dir}/${domain}/web): " vhostdir
-    if [ -n "${vhostdir}" -a -z "$(echo ${vhostdir} | grep '^/')" ]; then
-      echo "${CWARNING}input error! Press Enter to continue...${CEND}"
-    else
-      if [ -z "${vhostdir}" ]; then
-        vhostdir="${wwwroot_dir}/${domain}/web"
-        echo "Virtual Host Directory=${CMSG}${vhostdir}${CEND}"
+  if [[ -z ${proxy_flag} || "${proxy_flag}" != 'y' ]]; then
+    while :; do echo
+      echo "Please input the directory for the domain:${domain} :"
+      read -e -p "(Default directory: ${wwwroot_dir}/${domain}/web): " vhostdir
+      if [ -n "${vhostdir}" -a -z "$(echo ${vhostdir} | grep '^/')" ]; then
+        echo "${CWARNING}input error! Press Enter to continue...${CEND}"
+      else
+        if [ -z "${vhostdir}" ]; then
+          vhostdir="${wwwroot_dir}/${domain}/web"
+          echo "Virtual Host Directory=${CMSG}${vhostdir}${CEND}"
+        fi
+        echo
+        echo "Create Virtul Host directory......"
+        mkdir -p ${vhostdir}
+        echo "set permissions of Virtual Host directory......"
+        chown -R ${run_user}:${run_group} ${vhostdir}
+        break
       fi
-      echo
-      echo "Create Virtul Host directory......"
-      mkdir -p ${vhostdir}
-      echo "set permissions of Virtual Host directory......"
-      chown -R ${run_user}.${run_user} ${vhostdir}
-      break
-    fi
-  done
+    done
+  fi
 
   while :; do echo
     read -e -p "Do you want to add more domain name? [y/n]: " moredomainame_flag
@@ -473,15 +516,23 @@ What Are You Doing?
       LISTENOPT="443 ssl spdy"
     fi
     Create_SSL
-    Nginx_conf=$(echo -e "listen 80;\n  listen ${LISTENOPT};\n  ssl_certificate ${PATH_SSL}/${domain}.crt;\n  ssl_certificate_key ${PATH_SSL}/${domain}.key;\n  ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;\n  ssl_ciphers TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:TLS13-AES-128-CCM-8-SHA256:TLS13-AES-128-CCM-SHA256:EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;\n  ssl_prefer_server_ciphers on;\n  ssl_session_timeout 10m;\n  ssl_session_cache builtin:1000 shared:SSL:10m;\n  ssl_buffer_size 1400;\n  add_header Strict-Transport-Security max-age=15768000;\n  ssl_stapling on;\n  ssl_stapling_verify on;\n")
+    if [ -n "`ifconfig | grep inet6`" ]; then
+      Nginx_conf=$(echo -e "listen 80;\n  listen [::]:80;\n  listen ${LISTENOPT};\n  listen [::]:${LISTENOPT};\n  ssl_certificate ${PATH_SSL}/${domain}.crt;\n  ssl_certificate_key ${PATH_SSL}/${domain}.key;\n  ssl_protocols TLSv1.2 TLSv1.3;\n  ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;\n  ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256;\n  ssl_conf_command Ciphersuites TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256;\n  ssl_conf_command Options PrioritizeChaCha;\n  ssl_prefer_server_ciphers on;\n  ssl_session_timeout 10m;\n  ssl_session_cache shared:SSL:10m;\n  ssl_buffer_size 2k;\n  add_header Strict-Transport-Security max-age=15768000;\n  ssl_stapling on;\n  ssl_stapling_verify on;\n")
+    else
+      Nginx_conf=$(echo -e "listen 80;\n  listen ${LISTENOPT};\n  ssl_certificate ${PATH_SSL}/${domain}.crt;\n  ssl_certificate_key ${PATH_SSL}/${domain}.key;\n  ssl_protocols TLSv1.2 TLSv1.3;\n  ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;\n  ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256;\n  ssl_conf_command Ciphersuites TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256;\n  ssl_conf_command Options PrioritizeChaCha;\n  ssl_prefer_server_ciphers on;\n  ssl_session_timeout 10m;\n  ssl_session_cache shared:SSL:10m;\n  ssl_buffer_size 2k;\n  add_header Strict-Transport-Security max-age=15768000;\n  ssl_stapling on;\n  ssl_stapling_verify on;\n")
+    fi
     Apache_SSL=$(echo -e "SSLEngine on\n  SSLCertificateFile \"${PATH_SSL}/${domain}.crt\"\n  SSLCertificateKeyFile \"${PATH_SSL}/${domain}.key\"")
-  elif [ "$apache_ssl_flag" == 'y' ]; then
+  elif [ "${apache_ssl_flag}" == 'y' ]; then
     Create_SSL
     Apache_SSL=$(echo -e "SSLEngine on\n  SSLCertificateFile \"${PATH_SSL}/${domain}.crt\"\n  SSLCertificateKeyFile \"${PATH_SSL}/${domain}.key\"")
     [ -z "$(grep 'Listen 443' ${apache_install_dir}/conf/httpd.conf)" ] && sed -i "s@Listen 80@&\nListen 443@" ${apache_install_dir}/conf/httpd.conf
     [ -z "$(grep 'ServerName 0.0.0.0:443' ${apache_install_dir}/conf/httpd.conf)" ] && sed -i "s@ServerName 0.0.0.0:80@&\nServerName 0.0.0.0:443@" ${apache_install_dir}/conf/httpd.conf
   else
-    Nginx_conf="listen 80;"
+    if [ -n "`ifconfig | grep inet6`" ]; then
+      Nginx_conf=$(echo -e "listen 80;\n  listen [::]:80;")
+    else
+      Nginx_conf=$(echo -e "listen 80;")
+    fi
   fi
 }
 
@@ -529,15 +580,15 @@ Nginx_rewrite() {
     echo
     echo "Please input the rewrite of programme :"
     echo "${CMSG}wordpress${CEND},${CMSG}opencart${CEND},${CMSG}magento2${CEND},${CMSG}drupal${CEND},${CMSG}joomla${CEND},${CMSG}codeigniter${CEND},${CMSG}laravel${CEND}"
-    echo "${CMSG}thinkphp${CEND},${CMSG}pathinfo${CEND},${CMSG}discuz${CEND},${CMSG}typecho${CEND},${CMSG}ecshop${CEND},${CMSG}nextcloud${CEND} rewrite was exist."
+    echo "${CMSG}thinkphp${CEND},${CMSG}pathinfo${CEND},${CMSG}discuz${CEND},${CMSG}typecho${CEND},${CMSG}ecshop${CEND},${CMSG}nextcloud${CEND},${CMSG}zblog${CEND},${CMSG}whmcs${CEND} rewrite was exist."
     read -e -p "(Default rewrite: other): " rewrite
     if [ "${rewrite}" == "" ]; then
       rewrite="other"
     fi
     echo "You choose rewrite=${CMSG}$rewrite${CEND}"
-    [ "${NGX_FLAG}" == 'php' -a "${rewrite}" == "joomla" ] && NGX_CONF=$(echo -e "location ~ \\.php\$ {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${php_vn}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n  }")
-    [ "${NGX_FLAG}" == 'php' ] && [[ "${rewrite}" =~ ^codeigniter$|^thinkphp$|^pathinfo$ ]] && NGX_CONF=$(echo -e "location ~ [^/]\.php(/|\$) {\n    try_files \$uri =404;\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${php_vn}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n    set \$real_script_name \$fastcgi_script_name;\n    if (\$fastcgi_script_name ~ \"^(.+?\.php)(/.+)\$\") {\n      set \$real_script_name \$1;\n      set \$path_info \$2;\n    }\n    fastcgi_param SCRIPT_FILENAME \$document_root\$real_script_name;\n    fastcgi_param SCRIPT_NAME \$real_script_name;\n    fastcgi_param PATH_INFO \$path_info;\n  }")
-    [ "${NGX_FLAG}" == 'php' -a "${rewrite}" == "typecho" ] && NGX_CONF=$(echo -e "location ~ .*\.php(\/.*)*\$ {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${php_vn}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n    set \$path_info \"\";\n    set \$real_script_name \$fastcgi_script_name;\n    if (\$fastcgi_script_name ~ \"^(.+?\.php)(/.+)\$\") {\n      set \$real_script_name \$1;\n      set \$path_info \$2;\n    }\n    fastcgi_param SCRIPT_FILENAME \$document_root\$real_script_name;\n    fastcgi_param SCRIPT_NAME \$real_script_name;\n    fastcgi_param PATH_INFO \$path_info;\n  }")
+    [ "${NGX_FLAG}" == 'php' -a "${rewrite}" == "joomla" ] && NGX_CONF=$(echo -e "location ~ \\.php\$ {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${mphp_ver}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n  }")
+    [ "${NGX_FLAG}" == 'php' ] && [[ "${rewrite}" =~ ^codeigniter$|^thinkphp$|^pathinfo$ ]] && NGX_CONF=$(echo -e "location ~ [^/]\.php(/|\$) {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${mphp_ver}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n    fastcgi_split_path_info ^(.+?\.php)(/.*)\$;\n    set \$path_info \$fastcgi_path_info;\n    fastcgi_param PATH_INFO \$path_info;\n    try_files \$fastcgi_script_name =404;    \n  }")
+    [ "${NGX_FLAG}" == 'php' -a "${rewrite}" == "typecho" ] && NGX_CONF=$(echo -e "location ~ .*\.php(\/.*)*\$ {\n    #fastcgi_pass remote_php_ip:9000;\n    fastcgi_pass unix:/dev/shm/php${mphp_ver}-cgi.sock;\n    fastcgi_index index.php;\n    include fastcgi.conf;\n    set \$path_info \"\";\n    set \$real_script_name \$fastcgi_script_name;\n    if (\$fastcgi_script_name ~ \"^(.+?\.php)(/.+)\$\") {\n      set \$real_script_name \$1;\n      set \$path_info \$2;\n    }\n    fastcgi_param SCRIPT_FILENAME \$document_root\$real_script_name;\n    fastcgi_param SCRIPT_NAME \$real_script_name;\n    fastcgi_param PATH_INFO \$path_info;\n  }")
     if [[ ! "${rewrite}" =~ ^magento2$|^pathinfo$ ]]; then
       if [ -e "config/${rewrite}.conf" ]; then
         /bin/cp config/${rewrite}.conf ${web_install_dir}/conf/rewrite/${rewrite}.conf
@@ -586,8 +637,11 @@ server {
     expires 7d;
     access_log off;
   }
-  location ~ /\.ht {
+  location ~ /(\.user\.ini|\.ht|\.git|\.svn|\.project|LICENSE|README\.md) {
     deny all;
+  }
+  location /.well-known {
+    allow all;
   }
   ${NGX_CONF}
 }
@@ -621,7 +675,7 @@ EOF
 
   printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
@@ -648,7 +702,7 @@ EOF
 
   printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
@@ -658,7 +712,7 @@ EOF
   echo "$(printf "%-30s" "index url:")${CMSG}http://${domain}:8080/${CEND}"
 }
 
-Create_nginx_phpfpm_hhvm_conf() {
+Create_nginx_phpfpm_conf() {
   [ ! -d ${web_install_dir}/conf/vhost ] && mkdir ${web_install_dir}/conf/vhost
   cat > ${web_install_dir}/conf/vhost/${domain}.conf << EOF
 server {
@@ -682,8 +736,11 @@ server {
     expires 7d;
     access_log off;
   }
-  location ~ /\.ht {
+  location ~ /(\.user\.ini|\.ht|\.git|\.svn|\.project|LICENSE|README\.md) {
     deny all;
+  }
+  location /.well-known {
+    allow all;
   }
 }
 EOF
@@ -691,10 +748,10 @@ EOF
   [ "${rewrite}" == 'pathinfo' ] && sed -i '/pathinfo.conf;$/d' ${web_install_dir}/conf/vhost/${domain}.conf
   if [ "${rewrite}" == 'magento2' -a -e "config/${rewrite}.conf" ]; then
     /bin/cp config/${rewrite}.conf ${web_install_dir}/conf/vhost/${domain}.conf
+    sed -i "s@/dev/shm/php-cgi.sock@/dev/shm/php${mphp_ver}-cgi.sock@g" ${web_install_dir}/conf/vhost/${domain}.conf
     sed -i "s@^  set \$MAGE_ROOT.*;@  set \$MAGE_ROOT ${vhostdir};@" ${web_install_dir}/conf/vhost/${domain}.conf
     sed -i "s@^  server_name.*;@  server_name ${domain}${moredomainame};@" ${web_install_dir}/conf/vhost/${domain}.conf
     sed -i "s@^  server_name.*;@&\n  ${Nginx_log}@" ${web_install_dir}/conf/vhost/${domain}.conf
-    [ "${NGX_FLAG}" == 'hhvm' ] && sed -i 's@fastcgi_pass unix:.*;@fastcgi_pass unix:/var/log/hhvm/sock;@g' ${web_install_dir}/conf/vhost/${domain}.conf
     if [ "${anti_hotlinking_flag}" == 'y' ]; then
       sed -i "s@^  root.*;@&\n  }@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  root.*;@&\n    }@" ${web_install_dir}/conf/vhost/${domain}.conf
@@ -712,12 +769,15 @@ EOF
       sed -i "s@^  server_name.*;@&\n  ssl_stapling_verify on;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  ssl_stapling on;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  add_header Strict-Transport-Security max-age=15768000;@" ${web_install_dir}/conf/vhost/${domain}.conf
-      sed -i "s@^  server_name.*;@&\n  ssl_buffer_size 1400;@" ${web_install_dir}/conf/vhost/${domain}.conf
-      sed -i "s@^  server_name.*;@&\n  ssl_session_cache builtin:1000 shared:SSL:10m;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_buffer_size 2k;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_session_cache shared:SSL:10m;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  ssl_session_timeout 10m;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  ssl_prefer_server_ciphers on;@" ${web_install_dir}/conf/vhost/${domain}.conf
-      sed -i "s@^  server_name.*;@&\n  ssl_ciphers TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:TLS13-AES-128-CCM-8-SHA256:TLS13-AES-128-CCM-SHA256:EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:\!MD5;@" ${web_install_dir}/conf/vhost/${domain}.conf
-      sed -i "s@^  server_name.*;@&\n  ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_conf_command Options PrioritizeChaCha;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_conf_command Ciphersuites TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  server_name.*;@&\n  ssl_protocols TLSv1.2 TLSv1.3;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  ssl_certificate_key ${PATH_SSL}/${domain}.key;@" ${web_install_dir}/conf/vhost/${domain}.conf
       sed -i "s@^  server_name.*;@&\n  ssl_certificate ${PATH_SSL}/${domain}.crt;@" ${web_install_dir}/conf/vhost/${domain}.conf
     fi
@@ -738,13 +798,92 @@ EOF
 
   printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
   echo "$(printf "%-30s" "Your domain:")${CMSG}${domain}${CEND}"
   echo "$(printf "%-30s" "Virtualhost conf:")${CMSG}${web_install_dir}/conf/vhost/${domain}.conf${CEND}"
   echo "$(printf "%-30s" "Directory of:")${CMSG}${vhostdir}${CEND}"
+  [ "${rewrite_flag}" == 'y' -a "${rewrite}" != 'magento2' -a "${rewrite}" != 'pathinfo' ] && echo "$(printf "%-30s" "Rewrite rule:")${CMSG}${web_install_dir}/conf/rewrite/${rewrite}.conf${CEND}"
+  Print_SSL
+}
+
+Create_nginx_proxy_conf() {
+  [ ! -d ${web_install_dir}/conf/vhost ] && mkdir ${web_install_dir}/conf/vhost
+  cat > ${web_install_dir}/conf/vhost/${domain}.conf << EOF
+server {
+  ${Nginx_conf}
+  server_name ${domain}${moredomainame};
+  ${Nginx_log}
+  index index.html index.htm index.php;
+  ${Nginx_redirect}
+  location / {
+    proxy_pass ${Proxy_Pass};
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header Host \$http_host;
+    proxy_set_header X-NginX-Proxy true;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_max_temp_file_size 0;
+  }
+
+  #error_page 404 /404.html;
+  #error_page 502 /502.html;
+  ${anti_hotlinking}
+
+  location ~ .*\.(gif|jpg|jpeg|png|bmp|swf|flv|mp4|ico)$ {
+    expires 30d;
+    access_log off;
+  }
+  location ~ .*\.(js|css)?$ {
+    expires 7d;
+    access_log off;
+  }
+  location ~ /(\.user\.ini|\.ht|\.git|\.svn|\.project|LICENSE|README\.md) {
+    deny all;
+  }
+  location /.well-known {
+    allow all;
+  }
+}
+EOF
+
+  [ "${redirect_flag}" == 'y' ] && sed -i "s@^  root.*;@&\n  if (\$host != ${domain}) {  return 301 \$scheme://${domain}\$request_uri;  }@" ${web_install_dir}/conf/vhost/${domain}.conf
+
+  if [ "${anti_hotlinking_flag}" == 'y' ]; then
+      sed -i "s@^  root.*;@&\n  }@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n    }@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n      return 403;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n      rewrite ^/ http://www.linuxeye.com/403.html;@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n    if (\$invalid_referer) {@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n    valid_referers none blocked ${domain_allow_all};@" ${web_install_dir}/conf/vhost/${domain}.conf
+      sed -i "s@^  root.*;@&\n  location ~ .*\.(wma|wmv|asf|mp3|mmf|zip|rar|jpg|gif|png|swf|flv|mp4)\$ {@" ${web_install_dir}/conf/vhost/${domain}.conf
+    fi
+
+  [ "${https_flag}" == 'y' ] && sed -i "s@^  root.*;@&\n  if (\$ssl_protocol = \"\") { return 301 https://\$host\$request_uri; }@" ${web_install_dir}/conf/vhost/${domain}.conf
+
+  echo
+  ${web_install_dir}/sbin/nginx -t
+  if [ $? == 0 ]; then
+    echo "Reload Nginx......"
+    ${web_install_dir}/sbin/nginx -s reload
+  else
+    rm -f ${web_install_dir}/conf/vhost/${domain}.conf
+    echo "Create virtualhost ... [${CFAILURE}FAILED${CEND}]"
+    exit 1
+  fi
+
+  printf "
+#######################################################################
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
+#       For more information please visit https://oneinstack.com      #
+#######################################################################
+"
+  echo "$(printf "%-30s" "Your domain:")${CMSG}${domain}${CEND}"
+  echo "$(printf "%-30s" "Virtualhost conf:")${CMSG}${web_install_dir}/conf/vhost/${domain}.conf${CEND}"
+  #echo "$(printf "%-30s" "Directory of:")${CMSG}${vhostdir}${CEND}"
   [ "${rewrite_flag}" == 'y' -a "${rewrite}" != 'magento2' -a "${rewrite}" != 'pathinfo' ] && echo "$(printf "%-30s" "Rewrite rule:")${CMSG}${web_install_dir}/conf/rewrite/${rewrite}.conf${CEND}"
   Print_SSL
 }
@@ -770,7 +909,7 @@ Apache_log() {
 Create_apache_conf() {
   if [ "${Apache_main_ver}" == '24' ]; then
     if [ -e "${php_install_dir}/sbin/php-fpm" ] && [ -n "`grep -E ^LoadModule.*mod_proxy_fcgi.so ${apache_install_dir}/conf/httpd.conf`" ]; then
-      Apache_fcgi=$(echo -e "<Files ~ (\\.user.ini|\\.htaccess|\\.git|\\.svn|\\.project|LICENSE|README.md)\$>\n    Order allow,deny\n    Deny from all\n  </Files>\n  <FilesMatch \\.php\$>\n    SetHandler \"proxy:unix:/dev/shm/php${php_vn}-cgi.sock|fcgi://localhost\"\n  </FilesMatch>")
+      Apache_fcgi=$(echo -e "<Files ~ (\\.user.ini|\\.htaccess|\\.git|\\.svn|\\.project|LICENSE|README.md)\$>\n    Order allow,deny\n    Deny from all\n  </Files>\n  <FilesMatch \\.php\$>\n    SetHandler \"proxy:unix:/dev/shm/php${mphp_ver}-cgi.sock|fcgi://localhost\"\n  </FilesMatch>")
     fi
   fi
   [ ! -d ${apache_install_dir}/conf/vhost ] && mkdir ${apache_install_dir}/conf/vhost
@@ -794,7 +933,7 @@ Create_apache_conf() {
 </Directory>
 </VirtualHost>
 EOF
-  [ "$apache_ssl_flag" == 'y' ] && cat >> ${apache_install_dir}/conf/vhost/${domain}.conf << EOF
+  [ "${apache_ssl_flag}" == 'y' ] && cat >> ${apache_install_dir}/conf/vhost/${domain}.conf << EOF
 <VirtualHost *:443>
   ServerAdmin admin@example.com
   DocumentRoot "${vhostdir}"
@@ -829,7 +968,7 @@ EOF
 
   printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
@@ -870,8 +1009,11 @@ server {
     expires 7d;
     access_log off;
   }
-  location ~ /\.ht {
+  location ~ /(\.user\.ini|\.ht|\.git|\.svn|\.project|LICENSE|README\.md) {
     deny all;
+  }
+  location /.well-known {
+    allow all;
   }
 }
 EOF
@@ -891,7 +1033,7 @@ EOF
   # Apache
   if [ "${Apache_main_ver}" == '24' ]; then
     if [ -e "${php_install_dir}/sbin/php-fpm" ] && [ -n "`grep -E ^LoadModule.*mod_proxy_fcgi.so ${apache_install_dir}/conf/httpd.conf`" ]; then
-      Apache_fcgi=$(echo -e "<Files ~ (\\.user.ini|\\.htaccess|\\.git|\\.svn|\\.project|LICENSE|README.md)\$>\n    Order allow,deny\n    Deny from all\n  </Files>\n  <FilesMatch \\.php\$>\n    SetHandler \"proxy:unix:/dev/shm/php${php_vn}-cgi.sock|fcgi://localhost\"\n  </FilesMatch>")
+      Apache_fcgi=$(echo -e "<Files ~ (\\.user.ini|\\.htaccess|\\.git|\\.svn|\\.project|LICENSE|README.md)\$>\n    Order allow,deny\n    Deny from all\n  </Files>\n  <FilesMatch \\.php\$>\n    SetHandler \"proxy:unix:/dev/shm/php${mphp_ver}-cgi.sock|fcgi://localhost\"\n  </FilesMatch>")
     fi
   fi
   [ ! -d ${apache_install_dir}/conf/vhost ] && mkdir ${apache_install_dir}/conf/vhost
@@ -929,7 +1071,7 @@ EOF
 
   printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
@@ -945,13 +1087,18 @@ Add_Vhost() {
     Choose_ENV
     Input_Add_domain
     Nginx_anti_hotlinking
-    if [ "${NGX_FLAG}" == "java" ]; then
-      Nginx_log
-      Create_nginx_tomcat_conf
-    else
-      Nginx_rewrite
-      Nginx_log
-      Create_nginx_phpfpm_hhvm_conf
+    if [ "${proxy_flag}" == "y" ]; then
+        Input_Add_proxy
+        Create_nginx_proxy_conf
+      else
+        Nginx_rewrite
+        if [ "${NGX_FLAG}" == "java" ]; then
+          Nginx_log
+          Create_nginx_tomcat_conf
+        else
+          Nginx_log
+          Create_nginx_phpfpm_conf
+        fi
     fi
   elif [ ! -e "${web_install_dir}/sbin/nginx" -a -e "${apache_install_dir}/bin/httpd" ]; then
     Choose_ENV
@@ -967,12 +1114,9 @@ Add_Vhost() {
     Input_Add_domain
     Nginx_anti_hotlinking
     if [ "${NGX_FLAG}" == "java" ]; then
-      Nginx_log
-      Create_nginx_tomcat_conf
-    elif [ "${NGX_FLAG}" == "hhvm" ]; then
       Nginx_rewrite
       Nginx_log
-      Create_nginx_phpfpm_hhvm_conf
+      Create_nginx_tomcat_conf
     elif [ "${NGX_FLAG}" == "php" ]; then
       Nginx_log
       Apache_log
@@ -1016,6 +1160,8 @@ Del_NGX_Vhost() {
                 rm -rf ${Directory}
               fi
               echo
+              [ -d ~/.acme.sh/${domain} ] && ~/.acme.sh/acme.sh --force --remove -d ${domain} > /dev/null 2>&1
+              [ -d ~/.acme.sh/${domain}_ecc ] && ~/.acme.sh/acme.sh --force --remove --ecc -d ${domain} > /dev/null 2>&1
               echo "${CMSG}Domain: ${domain} has been deleted.${CEND}"
               echo
             else
@@ -1067,6 +1213,8 @@ Del_Apache_Vhost() {
 		fi
                 rm -rf ${Directory}
               fi
+              [ -d ~/.acme.sh/${domain} ] && ~/.acme.sh/acme.sh --force --remove -d ${domain} > /dev/null 2>&1
+              [ -d ~/.acme.sh/${domain}_ecc ] && ~/.acme.sh/acme.sh --force --remove --ecc -d ${domain} > /dev/null 2>&1
               echo "${CSUCCESS}Domain: ${domain} has been deleted.${CEND}"
             else
               echo "${CWARNING}Virtualhost: ${domain} was not exist! ${CEND}"
@@ -1152,7 +1300,7 @@ List_Vhost() {
 if [ ${ARG_NUM} == 0 ]; then
   Add_Vhost
 else
-  [ "${add_flag}" == 'y' -o "${sslquiet_flag}" == 'y' ] && Add_Vhost
+  [ "${add_flag}" == 'y' -o "${proxy_flag}" == 'y' -o "${sslquiet_flag}" == 'y' ] && Add_Vhost
   [ "${list_flag}" == 'y' ] && List_Vhost
   [ "${delete_flag}" == 'y' ] && { Del_NGX_Vhost; Del_Apache_Vhost; Del_Tomcat_Vhost; }
 fi

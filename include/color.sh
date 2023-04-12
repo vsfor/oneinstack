@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com

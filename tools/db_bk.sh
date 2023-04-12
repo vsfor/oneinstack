@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -13,8 +13,8 @@
 
 DBname=$1
 LogFile=${backup_dir}/db.log
-DumpFile=${backup_dir}/DB_${DBname}_$(date +%Y%m%d_%H).sql
-NewFile=${backup_dir}/DB_${DBname}_$(date +%Y%m%d_%H).tgz
+DumpFile=${backup_dir}/DB_${DBname}_$(date +%Y%m%d_%H%M%S).sql
+NewFile=${backup_dir}/DB_${DBname}_$(date +%Y%m%d_%H%M%S).tgz
 OldFile=${backup_dir}/DB_${DBname}_$(date +%Y%m%d --date="${expired_days} days ago")*.tgz
 
 [ ! -e "${backup_dir}" ] && mkdir -p ${backup_dir}

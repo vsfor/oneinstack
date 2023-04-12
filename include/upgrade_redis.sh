@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -13,7 +13,7 @@ Upgrade_Redis() {
   [ ! -d "$redis_install_dir" ] && echo "${CWARNING}Redis is not installed on your system! ${CEND}" && exit 1
   OLD_redis_ver=`$redis_install_dir/bin/redis-cli --version | awk '{print $2}'`
   Latest_redis_ver=`curl --connect-timeout 2 -m 3 -s http://download.redis.io/redis-stable/00-RELEASENOTES | awk '/Released/{print $2}' | head -1`
-  Latest_redis_ver=${Latest_redis_ver:-5.0.2}
+  Latest_redis_ver=${Latest_redis_ver:-6.0.4}
   echo "Current Redis Version: ${CMSG}$OLD_redis_ver${CEND}"
   while :; do echo
     [ "${redis_flag}" != 'y' ] && read -e -p "Please input upgrade Redis Version(default: ${Latest_redis_ver}): " NEW_redis_ver
@@ -41,11 +41,6 @@ Upgrade_Redis() {
     tar xzf redis-$NEW_redis_ver.tar.gz
     pushd redis-$NEW_redis_ver
     make clean
-    if [ "${OS_BIT}" == '32' ]; then
-      sed -i '1i\CFLAGS= -march=i686' src/Makefile
-      sed -i 's@^OPT=.*@OPT=-O2 -march=i686@' src/.make-settings
-    fi
-
     make -j ${THREAD}
 
     if [ -f "src/redis-server" ]; then

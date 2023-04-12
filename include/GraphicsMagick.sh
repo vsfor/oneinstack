@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -15,7 +15,7 @@ Install_GraphicsMagick() {
     pushd ${oneinstack_dir}/src > /dev/null
     tar xzf GraphicsMagick-${graphicsmagick_ver}.tar.gz
     pushd GraphicsMagick-${graphicsmagick_ver} > /dev/null
-    ./configure --prefix=${gmagick_install_dir} --enable-shared --enable-static
+    ./configure --prefix=${gmagick_install_dir} --enable-shared --enable-static --enable-symbol-prefix
     make -j ${THREAD} && make install
     popd > /dev/null
     rm -rf GraphicsMagick-${graphicsmagick_ver}
@@ -34,12 +34,12 @@ Install_pecl_gmagick() {
   if [ -e "${php_install_dir}/bin/phpize" ]; then
     pushd ${oneinstack_dir}/src > /dev/null
     phpExtensionDir=`${php_install_dir}/bin/php-config --extension-dir`
-    if [ "`${php_install_dir}/bin/php -r 'echo PHP_VERSION;' | awk -F. '{print $1}'`" == '7' ]; then
-      tar xzf gmagick-${gmagick_ver}.tgz
-      pushd gmagick-${gmagick_ver} > /dev/null
-    else
+    if [ "`${php_install_dir}/bin/php-config --version | awk -F. '{print $1}'`" == '5' ]; then
       tar xzf gmagick-${gmagick_oldver}.tgz
       pushd gmagick-${gmagick_oldver} > /dev/null
+    else
+      tar xzf gmagick-${gmagick_ver}.tgz
+      pushd gmagick-${gmagick_ver} > /dev/null
     fi
     export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
     ${php_install_dir}/bin/phpize
@@ -51,7 +51,7 @@ Install_pecl_gmagick() {
       echo "${CSUCCESS}PHP gmagick module installed successfully! ${CEND}"
       rm -rf gmagick-${gmagick_ver} gmagick-${gmagick_oldver}
     else
-      echo "${CFAILURE}PHP gmagick module install failed, Please contact the author! ${CEND}"
+      echo "${CFAILURE}PHP gmagick module install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
     fi
     popd > /dev/null
   fi

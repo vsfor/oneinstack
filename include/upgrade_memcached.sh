@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -19,7 +19,7 @@ Upgrade_Memcached() {
     [ "${memcached_flag}" != 'y' ] && read -e -p "Please input upgrade Memcached Version(default: ${Latest_memcached_ver}): " NEW_memcached_ver
     NEW_memcached_ver=${NEW_memcached_ver:-${Latest_memcached_ver}}
     if [ "${NEW_memcached_ver}" != "${OLD_memcached_ver}" ]; then
-      [ "${IPADDR_COUNTRY}"x == "CN"x ] && DOWN_ADDR=http://mirrors.linuxeye.com/oneinstack/src || DOWN_ADDR=http://www.memcached.org/files
+      [ "${OUTIP_STATE}"x == "China"x ] && DOWN_ADDR=http://mirrors.linuxeye.com/oneinstack/src || DOWN_ADDR=http://www.memcached.org/files
       [ ! -e "memcached-${NEW_memcached_ver}.tar.gz" ] && wget --no-check-certificate -c ${DOWN_ADDR}/memcached-${NEW_memcached_ver}.tar.gz > /dev/null 2>&1
       if [ -e "memcached-${NEW_memcached_ver}.tar.gz" ]; then
         echo "Download [${CMSG}memcached-${NEW_memcached_ver}.tar.gz${CEND}] successfully! "
@@ -42,8 +42,7 @@ Upgrade_Memcached() {
     tar xzf memcached-${NEW_memcached_ver}.tar.gz
     pushd memcached-${NEW_memcached_ver}
     make clean
-    [ "${PM}" == 'yum' ] && libevent_arg='--with-libevent=/usr/local'
-    ./configure --prefix=${memcached_install_dir} ${libevent_arg}
+    ./configure --prefix=${memcached_install_dir}
     make -j ${THREAD}
 
     if [ -e "memcached" ]; then

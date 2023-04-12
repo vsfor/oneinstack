@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,7 +12,7 @@ Install_XCache() {
   if [ -e "${php_install_dir}/bin/phpize" ]; then
     pushd ${oneinstack_dir}/src > /dev/null
     phpExtensionDir=$(${php_install_dir}/bin/php-config --extension-dir)
-    PHP_detail_ver=$(${php_install_dir}/bin/php -r 'echo PHP_VERSION;')
+    PHP_detail_ver=$(${php_install_dir}/bin/php-config --version)
     PHP_main_ver=${PHP_detail_ver%.*}
     if [[ "${PHP_main_ver}" =~ ^5.[3-6]$ ]]; then
       tar xzf xcache-${xcache_ver}.tar.gz
@@ -23,8 +23,8 @@ Install_XCache() {
       if [ -f "${phpExtensionDir}/xcache.so" ]; then
         /bin/cp -R htdocs ${wwwroot_dir}/default/xcache
         popd > /dev/null
-        chown -R ${run_user}.${run_user} ${wwwroot_dir}/default/xcache
-        touch /tmp/xcache;chown ${run_user}.${run_user} /tmp/xcache
+        chown -R ${run_user}:${run_group} ${wwwroot_dir}/default/xcache
+        touch /tmp/xcache;chown ${run_user}:${run_group} /tmp/xcache
         let xcacheCount="${CPU}+1"
         let xcacheSize="${Memory_limit}/2"
         cat > ${php_install_dir}/etc/php.d/04-xcache.ini << EOF
@@ -67,7 +67,7 @@ EOF
         echo "${CSUCCESS}PHP xcache module installed successfully! ${CEND}"
         rm -rf xcache-${xcache_ver}
       else
-        echo "${CFAILURE}PHP xcache module install failed, Please contact the author! ${CEND}"
+        echo "${CFAILURE}PHP xcache module install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
       fi
     else
       echo; echo "${CWARNING}Your php ${PHP_detail_ver} does not support XCache! ${CEND}";

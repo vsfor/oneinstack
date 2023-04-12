@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -11,7 +11,7 @@
 Install_eAccelerator() {
   if [ -e "${php_install_dir}/bin/phpize" ]; then
     pushd ${oneinstack_dir}/src > /dev/null
-    PHP_detail_ver=$(${php_install_dir}/bin/php -r 'echo PHP_VERSION;')
+    PHP_detail_ver=$(${php_install_dir}/bin/php-config --version)
     PHP_main_ver=${PHP_detail_ver%.*}
     phpExtensionDir=$(${php_install_dir}/bin/php-config --extension-dir)
     if [[ "${PHP_main_ver}" =~ ^5.[3-4]$ ]]; then
@@ -28,7 +28,7 @@ Install_eAccelerator() {
       make -j ${THREAD} && make install
       popd > /dev/null
       if [ -f "${phpExtensionDir}/eaccelerator.so" ]; then
-        mkdir /var/eaccelerator_cache;chown -R ${run_user}.${run_user} /var/eaccelerator_cache
+        mkdir /var/eaccelerator_cache;chown -R ${run_user}:${run_group} /var/eaccelerator_cache
         cat > ${php_install_dir}/etc/php.d/02-eaccelerator.ini << EOF
 [eaccelerator]
 zend_extension=${phpExtensionDir}/eaccelerator.so
@@ -54,7 +54,7 @@ EOF
         echo "${CSUCCESS}PHP eaccelerator module installed successfully! ${CEND}"
         rm -rf eaccelerator-${eaccelerator_ver} eaccelerator-eaccelerator-42067ac
       else
-        echo "${CFAILURE}PHP eaccelerator module install failed, Please contact the author! ${CEND}"
+        echo "${CFAILURE}PHP eaccelerator module install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
       fi
     else
       echo; echo "${CWARNING}Your php ${PHP_detail_ver} does not support eAccelerator! ${CEND}";

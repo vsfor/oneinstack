@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,7 +12,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 clear
 printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #              Reset Database root password for OneinStack            #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
@@ -90,7 +90,7 @@ Reset_force_dbrootpwd() {
   DB_Ver="`${db_install_dir}/bin/mysql_config --version`"
   echo "${CMSG}Stopping MySQL...${CEND}"
   service mysqld stop > /dev/null 2>&1
-  while [ -n "`ps -ef | grep mysql | grep -v grep | awk '{print $2}'`" ]; do
+  while [ -n "`ps -ef | grep mysqld | grep -v grep | awk '{print $2}'`" ]; do
     sleep 1
   done
   echo "${CMSG}skip grant tables...${CEND}"
@@ -112,10 +112,10 @@ EOF
   fi
   if [ $? -eq 0 ]; then
     killall mysqld
-    while [ -n "`ps -ef | grep mysql | grep -v grep | awk '{print $2}'`" ]; do
+    while [ -n "`ps -ef | grep mysqld | grep -v grep | awk '{print $2}'`" ]; do
       sleep 1
     done
-    [ -n "`ps -ef | grep mysql | grep -v grep | awk '{print $2}'`" ] && ps -ef | grep mysql | grep -v grep | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1
+    [ -n "`ps -ef | grep mysqld | grep -v grep | awk '{print $2}'`" ] && ps -ef | grep mysqld | grep -v grep | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1
     service mysqld start > /dev/null 2>&1
     sed -i "s+^dbrootpwd.*+dbrootpwd='${New_dbrootpwd}'+" ./options.conf
     [ -e ~/ReadMe ] && sed -i "s+^MySQL root password:.*+MySQL root password: ${New_dbrootpwd}+"  ~/ReadMe

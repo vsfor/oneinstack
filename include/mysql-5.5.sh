@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -17,8 +17,8 @@ Install_MySQL55() {
   mkdir -p ${mysql_data_dir};chown mysql.mysql -R ${mysql_data_dir}
 
   if [ "${dbinstallmethod}" == "1" ]; then
-    tar xzf mysql-${mysql55_ver}-linux-glibc2.12-${SYS_BIT_b}.tar.gz
-    mv mysql-${mysql55_ver}-linux-glibc2.12-${SYS_BIT_b}/* ${mysql_install_dir}
+    tar xzf mysql-${mysql55_ver}-linux-glibc2.12-x86_64.tar.gz
+    mv mysql-${mysql55_ver}-linux-glibc2.12-x86_64/* ${mysql_install_dir}
     sed -i 's@executing mysqld_safe@executing mysqld_safe\nexport LD_PRELOAD=/usr/local/lib/libjemalloc.so@' ${mysql_install_dir}/bin/mysqld_safe
     sed -i "s@/usr/local/mysql@${mysql_install_dir}@g" ${mysql_install_dir}/bin/mysqld_safe
   elif [ "${dbinstallmethod}" == "2" ]; then
@@ -50,14 +50,14 @@ Install_MySQL55() {
     sed -i "s+^dbrootpwd.*+dbrootpwd='${dbrootpwd}'+" ../options.conf
     echo "${CSUCCESS}MySQL installed successfully! ${CEND}"
     if [ "${dbinstallmethod}" == "1" ]; then
-      rm -rf mysql-${mysql55_ver}-*-${SYS_BIT_b}
+      rm -rf mysql-${mysql55_ver}-*-x86_64
     elif [ "${dbinstallmethod}" == "2" ]; then
       rm -rf mysql-${mysql55_ver}
     fi
   else
     rm -rf ${mysql_install_dir}
-    echo "${CFAILURE}MySQL install failed, Please contact the author! ${CEND}"
-    kill -9 $$
+    echo "${CFAILURE}MySQL install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
+    kill -9 $$; exit 1;
   fi
 
   /bin/cp ${mysql_install_dir}/support-files/mysql.server /etc/init.d/mysqld
@@ -73,7 +73,6 @@ Install_MySQL55() {
 [client]
 port = 3306
 socket = /tmp/mysql.sock
-default-character-set = utf8mb4
 
 [mysql]
 prompt="MySQL [\\d]> "
@@ -208,12 +207,12 @@ EOF
 
   ${mysql_install_dir}/bin/mysql -e "grant all privileges on *.* to root@'127.0.0.1' identified by \"${dbrootpwd}\" with grant option;"
   ${mysql_install_dir}/bin/mysql -e "grant all privileges on *.* to root@'localhost' identified by \"${dbrootpwd}\" with grant option;"
-  ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.user where Password='';"
+  ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.user where Password='' and User not like 'mysql.%';"
   ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.db where User='';"
   ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.proxies_priv where Host!='localhost';"
   ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "drop database test;"
   ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "reset master;"
-  rm -rf /etc/ld.so.conf.d/{mysql,mariadb,percona,alisql}*.conf
+  rm -rf /etc/ld.so.conf.d/{mysql,mariadb,percona}*.conf
   [ -e "${mysql_install_dir}/my.cnf" ] && rm -f ${mysql_install_dir}/my.cnf
   echo "${mysql_install_dir}/lib" > /etc/ld.so.conf.d/z-mysql.conf
   ldconfig

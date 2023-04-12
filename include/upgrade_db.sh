@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -11,6 +11,7 @@
 Upgrade_DB() {
   pushd ${oneinstack_dir}/src > /dev/null
   [ ! -e "${db_install_dir}/bin/mysql" ] && echo "${CWARNING}MySQL/MariaDB/Percona is not installed on your system! ${CEND}" && exit 1
+  [ "${armplatform}" == 'y' ] && echo "${CWARNING}The arm architecture operating system does not support upgrading MySQL/MariaDB/Percona! ${CEND}" && exit 1
 
   # check db passwd
   while :; do
@@ -33,16 +34,17 @@ Upgrade_DB() {
 
   OLD_db_ver_tmp=`${db_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e 'select version()\G;' | grep version | awk '{print $2}'`
   if [ -n "`${db_install_dir}/bin/mysql -V | grep -o MariaDB`" ]; then
-    [ "${IPADDR_COUNTRY}"x == "CN"x ] && DOWN_ADDR=https://mirrors.tuna.tsinghua.edu.cn/mariadb || DOWN_ADDR=https://downloads.mariadb.org/f
+    [ "${OUTIP_STATE}"x == "China"x ] && DOWN_ADDR=https://mirrors.tuna.tsinghua.edu.cn/mariadb || DOWN_ADDR=https://downloads.mariadb.org/f
     DB=MariaDB
     OLD_db_ver=`echo ${OLD_db_ver_tmp} | awk -F'-' '{print $1}'`
   elif [ -n "`${db_install_dir}/bin/mysql -V | grep -o Percona`" ]; then
     DB=Percona
     OLD_db_ver=${OLD_db_ver_tmp}
   else
-    [ "${IPADDR_COUNTRY}"x == "CN"x ] && DOWN_ADDR=http://mirrors.ustc.edu.cn/mysql-ftp/Downloads || DOWN_ADDR=http://cdn.mysql.com/Downloads
+    #[ "${OUTIP_STATE}"x == "China"x ] && DOWN_ADDR=http://mirrors.ustc.edu.cn/mysql-ftp/Downloads || DOWN_ADDR=http://cdn.mysql.com/Downloads
+    DOWN_ADDR=http://cdn.mysql.com/Downloads
     DB=MySQL
-    OLD_db_ver=${OLD_db_ver_tmp}
+    OLD_db_ver=${OLD_db_ver_tmp%%-log}
   fi
 
   #backup
@@ -58,18 +60,24 @@ Upgrade_DB() {
     [ "${db_flag}" != 'y' ] && read -e -p "Please input upgrade ${DB} Version(example: ${OLD_db_ver}): " NEW_db_ver
     if [ `echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'` == `echo ${OLD_db_ver} | awk -F. '{print $1"."$2}'` ]; then
       if [ "${DB}" == 'MariaDB' ]; then
-        DB_filename=mariadb-${NEW_db_ver}-${GLIBC_FLAG}-${SYS_BIT_b}
-        DB_URL=${DOWN_ADDR}/mariadb-${NEW_db_ver}/bintar-${GLIBC_FLAG}-${SYS_BIT_a}/${DB_filename}.tar.gz
+        DB_filename=mariadb-${NEW_db_ver}-linux-systemd-x86_64
+        DB_URL=${DOWN_ADDR}/mariadb-${NEW_db_ver}/bintar-linux-systemd-x86_64/${DB_filename}.tar.gz
       elif [ "${DB}" == 'Percona' ]; then
         if [[ "`echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'`" =~ ^5.[5-6]$ ]]; then
           perconaVerStr1=$(echo ${NEW_db_ver} | sed "s@-@-rel@")
         else
           perconaVerStr1=${NEW_db_ver}
         fi
-        DB_filename=Percona-Server-${perconaVerStr1}-Linux.${SYS_BIT_b}.${sslLibVer}
+        if [[ "`echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'`" =~ ^8.0$ ]]; then
+           DB_filename=Percona-Server-${perconaVerStr1}-Linux.x86_64.glibc2.28
+        elif [[ "`echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'`" =~ ^5.7$ ]]; then
+           DB_filename=Percona-Server-${perconaVerStr1}-Linux.x86_64.glibc2.17
+        else
+           DB_filename=Percona-Server-${perconaVerStr1}-Linux.x86_64.${sslLibVer}
+        fi
         DB_URL=https://www.percona.com/downloads/Percona-Server-`echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'`/Percona-Server-${NEW_db_ver}/binary/tarball/${DB_filename}.tar.gz
       elif [ "${DB}" == 'MySQL' ]; then
-        DB_filename=mysql-${NEW_db_ver}-linux-glibc2.12-${SYS_BIT_b}
+        DB_filename=mysql-${NEW_db_ver}-linux-glibc2.12-x86_64
         if [ `echo ${OLD_db_ver} | awk -F. '{print $1"."$2}'` == '8.0' ]; then
           DB_URL=${DOWN_ADDR}/MySQL-`echo ${NEW_db_ver} | awk -F. '{print $1"."$2}'`/${DB_filename}.tar.xz
         else
@@ -85,6 +93,7 @@ Upgrade_DB() {
       break
     else
       echo "${CWARNING}input error! ${CEND}Please only input '${CMSG}${OLD_db_ver%.*}.xx${CEND}'"
+      [ "${db_flag}" == 'y' ] && exit
     fi
   done
 
@@ -110,6 +119,7 @@ Upgrade_DB() {
       service mysqld restart
       ${mariadb_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "drop database test;" >/dev/null 2>&1
       ${mariadb_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "reset master;" >/dev/null 2>&1
+      ${mariadb_install_dir}/bin/mysql_upgrade -uroot -p${dbrootpwd} >/dev/null 2>&1
       [ $? -eq 0 ] &&  echo "You have ${CMSG}successfully${CEND} upgrade from ${CMSG}${OLD_db_ver}${CEND} to ${CMSG}${NEW_db_ver}${CEND}"
     elif [ "${DB}" == 'Percona' ]; then
       tar xzf ${DB_filename}.tar.gz
@@ -132,6 +142,7 @@ Upgrade_DB() {
       service mysqld restart
       ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "drop database test;" >/dev/null 2>&1
       ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "reset master;" >/dev/null 2>&1
+      ${percona_install_dir}/bin/mysql_upgrade -uroot -p${dbrootpwd} >/dev/null 2>&1
       [ $? -eq 0 ] &&  echo "You have ${CMSG}successfully${CEND} upgrade from ${CMSG}${OLD_db_ver}${CEND} to ${CMSG}${NEW_db_ver}${CEND}"
     elif [ "${DB}" == 'MySQL' ]; then
       if [ `echo ${OLD_db_ver} | awk -F. '{print $1"."$2}'` == '8.0' ]; then
@@ -155,11 +166,13 @@ Upgrade_DB() {
 
       chown mysql.mysql -R ${mysql_data_dir}
       [ -e "${mysql_install_dir}/my.cnf" ] && rm -rf ${mysql_install_dir}/my.cnf
+      sed -i '/myisam_repair_threads/d' /etc/my.cnf
       service mysqld start
       ${mysql_install_dir}/bin/mysql < DB_all_backup_$(date +"%Y%m%d").sql
       service mysqld restart
       ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "drop database test;" >/dev/null 2>&1
       ${mysql_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "reset master;" >/dev/null 2>&1
+      ${mysql_install_dir}/bin/mysql_upgrade -uroot -p${dbrootpwd} >/dev/null 2>&1
       [ $? -eq 0 ] &&  echo "You have ${CMSG}successfully${CEND} upgrade from ${CMSG}${OLD_db_ver}${CEND} to ${CMSG}${NEW_db_ver}${CEND}"
     fi
   fi

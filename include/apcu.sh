@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,12 +12,12 @@ Install_APCU() {
   if [ -e "${php_install_dir}/bin/phpize" ]; then
     pushd ${oneinstack_dir}/src > /dev/null
     phpExtensionDir=`${php_install_dir}/bin/php-config --extension-dir`
-    if [ "`${php_install_dir}/bin/php -r 'echo PHP_VERSION;' | awk -F. '{print $1}'`" == '7' ]; then
-      tar xzf apcu-${apcu_ver}.tgz
-      pushd apcu-${apcu_ver} > /dev/null
-    else
+    if [ "`${php_install_dir}/bin/php-config --version | awk -F. '{print $1}'`" == '5' ]; then
       tar xzf apcu-${apcu_oldver}.tgz
       pushd apcu-${apcu_oldver} > /dev/null
+    else
+      tar xzf apcu-${apcu_ver}.tgz
+      pushd apcu-${apcu_ver} > /dev/null
     fi
     ${php_install_dir}/bin/phpize
     ./configure --with-php-config=${php_install_dir}/bin/php-config
@@ -36,7 +36,7 @@ EOF
       echo "${CSUCCESS}PHP apcu module installed successfully! ${CEND}"
       rm -rf apcu-${apcu_ver} apcu-${apcu_oldver} package.xml
     else
-      echo "${CFAILURE}PHP apcu module install failed, Please contact the author! ${CEND}"
+      echo "${CFAILURE}PHP apcu module install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
     fi
     popd > /dev/null
   fi

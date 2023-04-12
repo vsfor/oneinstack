@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -14,11 +14,8 @@ Install_composer() {
       echo "${CWARNING}PHP Composer already installed! ${CEND}"
     else
       pushd ${oneinstack_dir}/src > /dev/null
-      # get the IP information
-      PUBLIC_IPADDR=$(../include/get_public_ipaddr.py)
-      IPADDR_COUNTRY=$(../include/get_ipaddr_state.py ${PUBLIC_IPADDR})
-      if [ "${IPADDR_COUNTRY}"x == "CN"x ]; then
-        wget -c https://dl.laravel-china.org/composer.phar -O /usr/local/bin/composer > /dev/null 2>&1
+      if [ "${OUTIP_STATE}"x == "China"x ]; then
+        wget -c https://mirrors.aliyun.com/composer/composer.phar -O /usr/local/bin/composer > /dev/null 2>&1
         ${php_install_dir}/bin/php /usr/local/bin/composer config -g repo.packagist composer https://packagist.phpcomposer.com
       else
         wget -c https://getcomposer.org/composer.phar -O /usr/local/bin/composer > /dev/null 2>&1

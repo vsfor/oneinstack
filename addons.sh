@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,16 +12,21 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 clear
 printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #                    Install/Uninstall Extensions                     #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
 "
 # Check if user is root
+# shellcheck disable=SC2046
 [ $(id -u) != '0' ] && { echo "${CFAILURE}Error: You must be root to run this script${CEND}"; exit 1; }
 
 oneinstack_dir=$(dirname "`readlink -f $0`")
+# shellcheck disable=SC2164
 pushd ${oneinstack_dir} > /dev/null
+
+# get the out ip country
+OUTIP_STATE=$(./include/ois.${ARCH} ip_state)
 
 . ./versions.txt
 . ./options.conf
@@ -36,10 +41,9 @@ pushd ${oneinstack_dir} > /dev/null
 
 . ./include/fail2ban.sh
 
-. include/ngx_lua_waf.sh
+. ./include/ngx_lua_waf.sh
 
-. include/panel.sh
-
+# shellcheck disable=SC2154
 Show_Help() {
   echo
   echo "Usage: $0  command ...
@@ -54,7 +58,7 @@ Show_Help() {
 }
 
 ARG_NUM=$#
-TEMP=`getopt -o hiu --long help,install,uninstall,composer,fail2ban,ngx_lua_waf,python,panel -- "$@" 2>/dev/null`
+TEMP=`getopt -o hiu --long help,install,uninstall,composer,fail2ban,ngx_lua_waf,python -- "$@" 2>/dev/null`
 [ $? != 0 ] && echo "${CWARNING}ERROR: unknown argument! ${CEND}" && Show_Help && exit 1
 eval set -- "${TEMP}"
 while :; do
@@ -80,9 +84,6 @@ while :; do
       ;;
     --python)
       python_flag=y; shift 1
-      ;;
-    --panel)
-      panel_flag=y; shift 1
       ;;
     --)
       shift
@@ -146,7 +147,9 @@ What Are You Doing?
         3)
           ACTION_FUN
           if [ "${install_flag}" = 'y' ]; then
+            # shellcheck disable=SC2154
             [ -e "${nginx_install_dir}/sbin/nginx" ] && Nginx_lua_waf
+            # shellcheck disable=SC2154
             [ -e "${tengine_install_dir}/sbin/nginx" ] && Tengine_lua_waf
             enable_lua_waf
           elif [ "${uninstall_flag}" = 'y' ]; then
@@ -210,14 +213,6 @@ else
       Install_Python
     elif [ "${uninstall_flag}" = 'y' ]; then
       Uninstall_Python
-    fi
-  fi
-  if [ "${panel_flag}" == 'y' ]; then
-    if [ "${install_flag}" = 'y' ]; then
-      Install_Python
-      Install_Panel
-    elif [ "${uninstall_flag}" = 'y' ]; then
-      Uninstall_Panel
     fi
   fi
 fi

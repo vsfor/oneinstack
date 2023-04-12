@@ -31,7 +31,7 @@ TOMCAT_USAGE="Usage: $0 {\e[00;32mstart\e[00m|\e[00;31mstop\e[00m|\e[00;32mstatu
 SHUTDOWN_WAIT=20
 
 tomcat_pid() {
-  echo `ps -ef | grep $CATALINA_HOME/ | grep -v grep | tr -s " "|cut -d" " -f2`
+  echo `ps -ef | grep java | grep $CATALINA_HOME/ | grep -v grep | tr -s " "|cut -d" " -f2`
 }
 
 start() {
@@ -87,7 +87,12 @@ stop() {
 
 user_exists() {
   if id -u $1 >/dev/null 2>&1; then
-    echo "1"
+	islogin=`cat /etc/passwd | grep ^www: | grep nologin$`
+	if [ "${islogin: -7}" = "nologin" ]; then
+      echo "0"
+    else
+      echo "1"	
+    fi
   else
     echo "0"
   fi

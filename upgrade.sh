@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -12,7 +12,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 clear
 printf "
 #######################################################################
-#       OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+      #
+#       OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+      #
 #              Upgrade Software versions for OneinStack               #
 #       For more information please visit https://oneinstack.com      #
 #######################################################################
@@ -37,9 +37,8 @@ pushd ${oneinstack_dir} > /dev/null
 . ./include/upgrade_phpmyadmin.sh
 . ./include/upgrade_oneinstack.sh
 
-# get the IP information
-PUBLIC_IPADDR=$(./include/get_public_ipaddr.py)
-IPADDR_COUNTRY=$(./include/get_ipaddr_state.py ${PUBLIC_IPADDR})
+# get the out ip country
+OUTIP_STATE=$(./include/ois.${ARCH} ip_state)
 
 Show_Help() {
   echo
@@ -167,7 +166,7 @@ What Are You Doing?
           Upgrade_OneinStack
           ;;
         10)
-          [ -e ~/.acme.sh/acme.sh ] && { ~/.acme.sh/acme.sh --upgrade; ~/.acme.sh/acme.sh --version; }
+          [ -e ~/.acme.sh/acme.sh ] && { ~/.acme.sh/acme.sh --force --upgrade; ~/.acme.sh/acme.sh --version; }
           ;;
         q)
           exit
@@ -191,5 +190,5 @@ else
   [ "${memcached_flag}" == 'y' ] && Upgrade_Memcached
   [ "${phpmyadmin_flag}" == 'y' ] && Upgrade_phpMyAdmin
   [ "${NEW_oneinstack_ver}" == 'latest' ] && Upgrade_OneinStack
-  [ "${NEW_acme_ver}" == 'latest' ] && [ -e ~/.acme.sh/acme.sh ] && { ~/.acme.sh/acme.sh --upgrade; ~/.acme.sh/acme.sh --version; }
+  [ "${NEW_acme_ver}" == 'latest' ] && [ -e ~/.acme.sh/acme.sh ] && { ~/.acme.sh/acme.sh --force --upgrade; ~/.acme.sh/acme.sh --version; }
 fi

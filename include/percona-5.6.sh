@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -18,10 +18,10 @@ Install_Percona56() {
 
   if [ "${dbinstallmethod}" == "1" ]; then
     perconaVerStr1=$(echo ${percona56_ver} | sed "s@-@-rel@")
-    tar xzf Percona-Server-${perconaVerStr1}-Linux.${SYS_BIT_b}.${sslLibVer}.tar.gz
-    mv Percona-Server-${perconaVerStr1}-Linux.${SYS_BIT_b}.${sslLibVer}/* ${percona_install_dir}
+    tar xzf ./Percona-Server-${perconaVerStr1}-Linux.x86_64.${sslLibVer}.tar.gz
+    mv Percona-Server-${perconaVerStr1}-Linux.x86_64.${sslLibVer}/* ${percona_install_dir}
     sed -i 's@executing mysqld_safe@executing mysqld_safe\nexport LD_PRELOAD=/usr/local/lib/libjemalloc.so@' ${percona_install_dir}/bin/mysqld_safe
-    sed -i "s@/usr/local/Percona-Server-${perconaVerStr1}-Linux.${SYS_BIT_b}.${sslLibVer}@${percona_install_dir}@g" ${percona_install_dir}/bin/mysqld_safe
+    sed -i "s@/usr/local/Percona-Server-${perconaVerStr1}-Linux.x86_64.${sslLibVer}@${percona_install_dir}@g" ${percona_install_dir}/bin/mysqld_safe
   elif [ "${dbinstallmethod}" == "2" ]; then
     tar xzf percona-server-${percona56_ver}.tar.gz
     pushd percona-server-${percona56_ver}
@@ -50,14 +50,14 @@ Install_Percona56() {
     sed -i "s+^dbrootpwd.*+dbrootpwd='${dbrootpwd}'+" ../options.conf
     echo "${CSUCCESS}Percona installed successfully! ${CEND}"
     if [ "${dbinstallmethod}" == "1" ]; then
-      rm -rf Percona-Server-${perconaVerStr1}-Linux.${SYS_BIT_b}.${sslLibVer}
+      rm -rf Percona-Server-${perconaVerStr1}-Linux.x86_64.${sslLibVer}
     elif [ "${dbinstallmethod}" == "2" ]; then
       rm -rf percona-server-${percona56_ver}
     fi
   else
     rm -rf ${percona_install_dir}
-    echo "${CFAILURE}Percona install failed, Please contact the author! ${CEND}"
-    kill -9 $$
+    echo "${CFAILURE}Percona install failed, Please contact the author! ${CEND}" && grep -Ew 'NAME|ID|ID_LIKE|VERSION_ID|PRETTY_NAME' /etc/os-release
+    kill -9 $$; exit 1;
   fi
 
   /bin/cp ${percona_install_dir}/support-files/mysql.server /etc/init.d/mysqld
@@ -73,7 +73,6 @@ Install_Percona56() {
 [client]
 port = 3306
 socket = /tmp/mysql.sock
-default-character-set = utf8mb4
 
 [mysql]
 prompt="Percona [\\d]> "
@@ -209,12 +208,12 @@ EOF
 
   ${percona_install_dir}/bin/mysql -e "grant all privileges on *.* to root@'127.0.0.1' identified by \"${dbrootpwd}\" with grant option;"
   ${percona_install_dir}/bin/mysql -e "grant all privileges on *.* to root@'localhost' identified by \"${dbrootpwd}\" with grant option;"
-  ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.user where Password='';"
+  ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.user where Password='' and User not like 'mysql.%';"
   ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.db where User='';"
   ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "delete from mysql.proxies_priv where Host!='localhost';"
   ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "drop database test;"
   ${percona_install_dir}/bin/mysql -uroot -p${dbrootpwd} -e "reset master;"
-  rm -rf /etc/ld.so.conf.d/{mysql,mariadb,percona,alisql}*.conf
+  rm -rf /etc/ld.so.conf.d/{mysql,mariadb,percona}*.conf
   echo "${percona_install_dir}/lib" > /etc/ld.so.conf.d/z-percona.conf
   ldconfig
   service mysqld stop

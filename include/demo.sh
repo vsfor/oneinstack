@@ -1,8 +1,8 @@
 #!/bin/bash
 # Author:  yeho <lj2007331 AT gmail.com>
-# BLOG:  https://blog.linuxeye.cn
+# BLOG:  https://linuxeye.com
 #
-# Notes: OneinStack for CentOS/RedHat 6+ Debian 7+ and Ubuntu 12+
+# Notes: OneinStack for CentOS/RedHat 7+ Debian 9+ and Ubuntu 16+
 #
 # Project home page:
 #       https://oneinstack.com
@@ -10,7 +10,9 @@
 
 DEMO() {
   pushd ${oneinstack_dir}/src > /dev/null
-  [ "${IPADDR_COUNTRY}"x == "CN"x ] && /bin/cp ${oneinstack_dir}/config/index_cn.html ${wwwroot_dir}/default/index.html || /bin/cp ${oneinstack_dir}/config/index.html ${wwwroot_dir}/default
+  if [ ! -e ${wwwroot_dir}/default/index.html ]; then 
+    [ "${OUTIP_STATE}"x == "China"x ] && /bin/cp ${oneinstack_dir}/config/index_cn.html ${wwwroot_dir}/default/index.html || /bin/cp ${oneinstack_dir}/config/index.html ${wwwroot_dir}/default
+  fi
 
   if [ -e "${php_install_dir}/bin/php" ]; then
     src_url=http://mirrors.linuxeye.com/oneinstack/src/xprober.php && Download_src
@@ -23,10 +25,10 @@ DEMO() {
         /bin/cp ocp.php ${wwwroot_dir}/default
         ;;
       2)
-        sed -i 's@<a href="/ocp.php" target="_blank" class="links">Opcache</a>@<a href="/xcache" target="_blank" class="links">xcache</a>@' ${wwwroot_dir}/default/index.html
+        sed -i 's@<a href="/ocp.php" target="_blank" class="links">Opcache</a>@<a href="/apc.php" target="_blank" class="links">APC</a>@' ${wwwroot_dir}/default/index.html
         ;;
       3)
-        sed -i 's@<a href="/ocp.php" target="_blank" class="links">Opcache</a>@<a href="/apc.php" target="_blank" class="links">APC</a>@' ${wwwroot_dir}/default/index.html
+        sed -i 's@<a href="/ocp.php" target="_blank" class="links">Opcache</a>@<a href="/xcache" target="_blank" class="links">xcache</a>@' ${wwwroot_dir}/default/index.html
         ;;
       4)
         /bin/cp eaccelerator-*/control.php ${wwwroot_dir}/default
@@ -37,7 +39,7 @@ DEMO() {
         ;;
     esac
   fi
-  chown -R ${run_user}.${run_user} ${wwwroot_dir}/default
+  chown -R ${run_user}:${run_group} ${wwwroot_dir}/default
   [ -e /bin/systemctl ] && systemctl daemon-reload
   popd > /dev/null
 }
