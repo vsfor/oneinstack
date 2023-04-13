@@ -217,7 +217,7 @@ daemonize = yes
 ;;;;;;;;;;;;;;;;;;;;
 
 [${run_user}]
-listen = /dev/shm/php-cgi.sock
+listen = /dev/shm/php${php_vn}-cgi.sock
 listen.backlog = -1
 listen.allowed_clients = 127.0.0.1
 listen.owner = ${run_user}
@@ -236,7 +236,7 @@ pm.process_idle_timeout = 10s
 request_terminate_timeout = 120
 request_slowlog_timeout = 0
 
-pm.status_path = /php-fpm_status
+pm.status_path = /php${php_vn}-fpm_status
 slowlog = var/log/slow.log
 rlimit_files = 51200
 rlimit_core = 0
